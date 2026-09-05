@@ -1,0 +1,1418 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { isAdminAuthenticated } from '../../lib/adminAuth';
+import {
+  getAllNoticiasAdmin,
+  isSupabaseConnected,
+  isSupabaseTableMissing,
+} from '../../lib/supabase';
+
+export const prerender = false;
+
+const authenticated = isAdminAuthenticated(Astro.cookies);
+
+let noticias = [];
+let totalNoticias = 0;
+let totalPublicadas = 0;
+let totalRascunhos = 0;
+let categorias: string[] = [];
+
+if (authenticated) {
+  noticias = await getAllNoticiasAdmin();
+  totalNoticias = noticias.length;
+  totalPublicadas = noticias.filter((n) => n.publicado).length;
+  totalRascunhos = totalNoticias - totalPublicadas;
+  categorias = Array.from(new Set(noticias.map((n) => n.categoria).filter(Boolean)));
+}
+
+const hasSupabase = isSupabaseConnected();
+const tableMissing = isSupabaseTableMissing();
+---
+
+<Layout
+  title="Painel Administrativo — Portal de Notícias"
+  description="Área restrita de gestão de matérias, publicação de conteúdo jornalístico e monitoramento do banco de dados Supabase."
+>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    {!authenticated ? (
+      /* =========================================================================
+         TELA DE LOGIN DO ADMINISTRADOR
+      ========================================================================= */
+      <div class="min-h-[60vh] flex items-center justify-center py-12">
+        <div class="w-full max-w-md bg-white dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 rounded-2xl p-6 sm:p-8 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,0.2)]">
+          <div class="text-center mb-6">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-black text-white dark:bg-white dark:text-black mb-3 font-mono font-black text-lg">
+              🔐
+            </div>
+            <h1 class="text-2xl font-black uppercase italic tracking-tight text-neutral-950 dark:text-white">
+              Painel de Redação
+            </h1>
+            <p class="text-xs text-gray-500 dark:text-neutral-400 mt-1">
+              Acesse para redigir, editar e gerenciar matérias no portal
+            </p>
+          </div>
+
+          <form id="login-form" class="space-y-4">
+            <div>
+              <label for="admin-password" class="block text-xs font-bold uppercase tracking-wider text-neutral-700 dark:text-neutral-300 mb-1.5">
+                Senha de Administrador
+              </label>
+              <div class="relative">
+                <input
+                  type="password"
+                  id="admin-password"
+                  name="password"
+                  required
+                  placeholder="Digite a senha de acesso"
+                  class="w-full px-3.5 py-2.5 text-sm bg-gray-50 dark:bg-neutral-800 border-2 border-black dark:border-neutral-700 rounded-lg focus:outline-none focus:border-blue-600 dark:focus:border-blue-500 font-mono text-neutral-900 dark:text-white"
+                />
+                <button
+                  type="button"
+                  id="toggle-pwd"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-neutral-200"
+                  tabindex="-1"
+                >
+                  👁️
+                </button>
+              </div>
+            </div>
+
+            <div id="login-error" class="hidden p-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 text-xs font-medium"></div>
+
+            <button
+              type="submit"
+              id="login-btn"
+              class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+            >
+              <span>Entrar no Painel</span>
+              <span>→</span>
+            </button>
+          </form>
+
+          <div class="mt-6 pt-5 border-t border-gray-100 dark:border-neutral-800 text-center text-[11px] text-gray-400 leading-relaxed">
+            <span class="font-semibold text-gray-600 dark:text-neutral-300">Senha Padrão:</span> <code class="bg-gray-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded font-mono text-black dark:text-white">admin123</code>
+            <br />
+            (Personalizável via variável de ambiente <code>ADMIN_PASSWORD</code>)
+          </div>
+        </div>
+      </div>
+    ) : (
+      /* =========================================================================
+         DASHBOARD ADMINISTRATIVO COMPLETO
+      ========================================================================= */
+      <div class="space-y-6">
+        
+        {/* Barra de Título Superior */}
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b-2 border-black dark:border-neutral-800">
+          <div>
+            <div class="flex items-center gap-2.5">
+              <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
+              <h1 class="text-2xl sm:text-3xl font-black uppercase italic tracking-tight text-neutral-950 dark:text-white">
+                Painel Administrativo
+              </h1>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-neutral-400 mt-1">
+              Gerencie matérias publicadas, rascunhos e a sincronização com o banco Supabase
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+            <button
+              id="open-automation-guide"
+              class="px-3 py-2 text-xs font-bold uppercase tracking-wider border-2 border-purple-600 bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 hover:bg-purple-600 hover:text-white rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+            >
+              <span>🤖</span>
+              <span>Automação (n8n/Make)</span>
+            </button>
+
+            <a
+              href="/"
+              target="_blank"
+              class="px-3 py-2 text-xs font-bold uppercase tracking-wider border-2 border-black dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors flex items-center gap-1.5 text-black dark:text-white"
+            >
+              <span>Ver Portal</span>
+              <span class="text-xs">↗</span>
+            </a>
+            
+            <button
+              id="logout-btn"
+              class="px-3 py-2 text-xs font-bold uppercase tracking-wider border-2 border-red-600 text-red-600 hover:bg-red-600 hover:text-white rounded-lg transition-colors cursor-pointer"
+            >
+              Sair
+            </button>
+          </div>
+        </div>
+
+        {/* Banner Informativo de Conexão com o Supabase */}
+        <div class={`p-4 rounded-xl border-2 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+          hasSupabase 
+            ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-600 dark:border-emerald-800 text-emerald-900 dark:text-emerald-300' 
+            : tableMissing
+              ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-500 text-amber-900 dark:text-amber-300'
+              : 'bg-blue-50 dark:bg-blue-950/20 border-blue-600 text-blue-900 dark:text-blue-300'
+        }`}>
+          <div class="flex items-center gap-2.5">
+            <span class={`w-2.5 h-2.5 rounded-full shrink-0 ${
+              hasSupabase ? 'bg-emerald-500' : tableMissing ? 'bg-amber-500' : 'bg-blue-600 animate-ping'
+            }`}></span>
+            <div>
+              {hasSupabase ? (
+                <span><strong>Supabase Conectado:</strong> Suas alterações e novas matérias são salvas diretamente no banco PostgreSQL em tempo real.</span>
+              ) : tableMissing ? (
+                <span><strong>Tabela noticias pendente:</strong> Execute o script <code>supabase/schema.sql</code> no SQL Editor do Supabase para sincronizar suas alterações com a nuvem.</span>
+              ) : (
+                <span><strong>Modo de Demonstração:</strong> Alterações serão refletidas localmente nesta sessão. Para persistir no Supabase, configure <code>PUBLIC_SUPABASE_URL</code>.</span>
+              )}
+            </div>
+          </div>
+
+          <button
+            id="open-sql-guide"
+            class="font-mono text-[10px] font-bold uppercase bg-black text-white px-2.5 py-1.5 rounded shrink-0 hover:bg-neutral-800 transition-colors cursor-pointer"
+          >
+            📋 Ver Script SQL
+          </button>
+        </div>
+
+        {/* =========================================================================
+            BENTO METRIC CARDS (Estatísticas Rápidas)
+        ========================================================================= */}
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-white dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 p-4 rounded-xl">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-neutral-400">Total de Matérias</span>
+            <div class="text-3xl font-black text-neutral-950 dark:text-white mt-1 font-mono">{totalNoticias}</div>
+          </div>
+
+          <div class="bg-white dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 p-4 rounded-xl">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Publicadas no Ar</span>
+            <div class="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-1 font-mono">{totalPublicadas}</div>
+          </div>
+
+          <div class="bg-white dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 p-4 rounded-xl">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Em Rascunho</span>
+            <div class="text-3xl font-black text-amber-600 dark:text-amber-400 mt-1 font-mono">{totalRascunhos}</div>
+          </div>
+
+          <div class="bg-white dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 p-4 rounded-xl">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Categorias Ativas</span>
+            <div class="text-3xl font-black text-blue-600 dark:text-blue-400 mt-1 font-mono">{categorias.length}</div>
+          </div>
+        </div>
+
+        {/* =========================================================================
+            BARRA DE FERRAMENTAS E FILTROS
+        ========================================================================= */}
+        <div class="bg-white dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 rounded-xl p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+          <div class="flex flex-1 flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+              <input
+                type="text"
+                id="search-input"
+                placeholder="Buscar por título ou autor..."
+                class="w-full px-3.5 py-2 text-xs bg-gray-50 dark:bg-neutral-800 border-2 border-gray-300 dark:border-neutral-700 rounded-lg focus:outline-none focus:border-black dark:focus:border-white text-neutral-900 dark:text-white"
+              />
+            </div>
+
+            <select
+              id="category-filter"
+              class="px-3 py-2 text-xs bg-gray-50 dark:bg-neutral-800 border-2 border-gray-300 dark:border-neutral-700 rounded-lg focus:outline-none focus:border-black dark:focus:border-white text-neutral-900 dark:text-white font-bold uppercase"
+            >
+              <option value="">Todas as Categorias</option>
+              {categorias.map((cat) => (
+                <option value={cat}>{cat}</option>
+              ))}
+            </select>
+
+            <select
+              id="status-filter"
+              class="px-3 py-2 text-xs bg-gray-50 dark:bg-neutral-800 border-2 border-gray-300 dark:border-neutral-700 rounded-lg focus:outline-none focus:border-black dark:focus:border-white text-neutral-900 dark:text-white font-bold uppercase"
+            >
+              <option value="">Todos os Status</option>
+              <option value="publicado">Publicadas</option>
+              <option value="rascunho">Rascunhos</option>
+            </select>
+          </div>
+
+          <button
+            id="btn-nova-noticia"
+            class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2 shrink-0 cursor-pointer shadow-xs"
+          >
+            <span>+</span>
+            <span>Nova Matéria</span>
+          </button>
+        </div>
+
+        {/* =========================================================================
+            TABELA DE NOTÍCIAS
+        ========================================================================= */}
+        <div class="bg-white dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 rounded-xl overflow-hidden shadow-none">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse" id="noticias-table">
+              <thead>
+                <tr class="bg-neutral-100 dark:bg-neutral-800/80 border-b-2 border-black dark:border-neutral-700 text-[10px] font-black uppercase tracking-wider text-neutral-600 dark:text-neutral-300">
+                  <th class="py-3 px-4">Imagem</th>
+                  <th class="py-3 px-4">Título & Slug</th>
+                  <th class="py-3 px-4">Categoria</th>
+                  <th class="py-3 px-4">Autor</th>
+                  <th class="py-3 px-4">Data</th>
+                  <th class="py-3 px-4 text-center">Status</th>
+                  <th class="py-3 px-4 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200 dark:divide-neutral-800 text-xs" id="table-body">
+                {noticias.map((item) => (
+                  <tr class="noticia-row hover:bg-gray-50 dark:hover:bg-neutral-800/40 transition-colors" data-id={item.id} data-categoria={item.categoria} data-publicado={item.publicado ? 'publicado' : 'rascunho'} data-titulo={item.titulo.toLowerCase()} data-autor={(item.autor || '').toLowerCase()}>
+                    <td class="py-3 px-4 w-16">
+                      <div class="w-12 h-9 rounded bg-neutral-200 dark:bg-neutral-700 overflow-hidden border border-black dark:border-neutral-600 shrink-0">
+                        <img src={item.imagem} alt="" class="w-full h-full object-cover" loading="lazy" />
+                      </div>
+                    </td>
+                    <td class="py-3 px-4 max-w-xs sm:max-w-sm">
+                      <div class="font-bold text-neutral-950 dark:text-white line-clamp-1">
+                        {item.titulo}
+                      </div>
+                      <div class="font-mono text-[10px] text-gray-400 dark:text-neutral-500 truncate mt-0.5">
+                        /{item.slug}
+                      </div>
+                    </td>
+                    <td class="py-3 px-4">
+                      <span class="inline-block bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 text-neutral-800 dark:text-neutral-200 text-[10px] font-black uppercase px-2 py-0.5 rounded">
+                        {item.categoria}
+                      </span>
+                    </td>
+                    <td class="py-3 px-4 text-gray-600 dark:text-neutral-300 whitespace-nowrap">
+                      {item.autor || 'Redação'}
+                    </td>
+                    <td class="py-3 px-4 text-gray-500 dark:text-neutral-400 font-mono text-[11px] whitespace-nowrap">
+                      {new Date(item.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                    </td>
+                    <td class="py-3 px-4 text-center whitespace-nowrap">
+                      <button
+                        class="toggle-status-btn inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2.5 py-1 rounded transition-colors cursor-pointer border"
+                        class:list={[
+                          item.publicado
+                            ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-400 dark:border-emerald-700 hover:bg-emerald-100'
+                            : 'bg-gray-100 dark:bg-neutral-800 text-gray-500 dark:text-neutral-400 border-gray-300 dark:border-neutral-700 hover:bg-gray-200'
+                        ]}
+                        data-id={item.id}
+                        data-status={item.publicado ? 'true' : 'false'}
+                        title="Clique para alternar publicação"
+                      >
+                        <span class={`w-1.5 h-1.5 rounded-full ${item.publicado ? 'bg-emerald-500' : 'bg-gray-400'}`}></span>
+                        <span>{item.publicado ? 'Publicado' : 'Rascunho'}</span>
+                      </button>
+                    </td>
+                    <td class="py-3 px-4 text-right whitespace-nowrap">
+                      <div class="flex items-center justify-end gap-1.5">
+                        <a
+                          href={`/noticia/${item.slug}`}
+                          target="_blank"
+                          class="p-1.5 text-gray-500 hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-400 transition-colors"
+                          title="Visualizar notícia no portal"
+                        >
+                          👁️
+                        </a>
+                        <button
+                          class="edit-btn p-1.5 text-gray-700 hover:text-black dark:text-neutral-300 dark:hover:text-white transition-colors cursor-pointer"
+                          data-id={item.id}
+                          title="Editar matéria"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          class="delete-btn p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer"
+                          data-id={item.id}
+                          data-titulo={item.titulo}
+                          title="Excluir matéria"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div id="empty-state" class="hidden p-8 text-center text-gray-500 text-xs">
+            Nenhuma notícia encontrada com os filtros selecionados.
+          </div>
+        </div>
+
+      </div>
+    )}
+
+  </div>
+
+  {/* =========================================================================
+      MODAL: CRIAR / EDITAR NOTÍCIA
+  ========================================================================= */}
+  <div id="noticia-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-center justify-center p-3 sm:p-6 overflow-y-auto">
+    <div class="w-full max-w-3xl bg-white dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[90vh] flex flex-col">
+      
+      {/* Header do Modal */}
+      <div class="px-6 py-4 border-b-2 border-black dark:border-neutral-800 flex items-center justify-between bg-neutral-50 dark:bg-neutral-800/50 shrink-0">
+        <h2 id="modal-title" class="text-lg font-black uppercase italic tracking-tight text-neutral-950 dark:text-white">
+          Publicar Nova Matéria
+        </h2>
+        <button id="close-modal-btn" class="text-xl font-bold text-gray-400 hover:text-black dark:hover:text-white transition-colors p-1 cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      {/* Formulário com Scroll Interno */}
+      <form id="noticia-form" class="p-6 overflow-y-auto space-y-4 flex-1">
+        <input type="hidden" id="form-id" name="id" />
+
+        {/* Título */}
+        <div>
+          <label for="form-titulo" class="block text-xs font-bold uppercase tracking-wider text-neutral-800 dark:text-neutral-200 mb-1">
+            Título da Matéria *
+          </label>
+          <input
+            type="text"
+            id="form-titulo"
+            name="titulo"
+            required
+            placeholder="Ex: Mercado global reage a novos investimentos em energia sustentável"
+            class="w-full px-3.5 py-2.5 text-sm bg-gray-50 dark:bg-neutral-800 border-2 border-black dark:border-neutral-700 rounded-lg focus:outline-none focus:border-blue-600 font-bold text-neutral-950 dark:text-white"
+          />
+        </div>
+
+        {/* Slug (URL Amigável) */}
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label for="form-slug" class="text-xs font-bold uppercase tracking-wider text-neutral-800 dark:text-neutral-200">
+              Slug SEO (URL) *
+            </label>
+            <span class="text-[10px] text-gray-400 font-mono">Gerado automaticamente</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-mono text-gray-400 bg-gray-100 dark:bg-neutral-800 px-2.5 py-2 rounded-lg border border-gray-300 dark:border-neutral-700 shrink-0">
+              /noticia/
+            </span>
+            <input
+              type="text"
+              id="form-slug"
+              name="slug"
+              required
+              placeholder="exemplo-de-slug-amigavel"
+              class="flex-1 px-3 py-2 text-xs bg-gray-50 dark:bg-neutral-800 border-2 border-gray-300 dark:border-neutral-700 rounded-lg focus:outline-none focus:border-blue-600 font-mono text-neutral-900 dark:text-white"
+            />
+          </div>
+        </div>
+
+        {/* Grid: Categoria, Autor e Publicado */}
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label for="form-categoria" class="block text-xs font-bold uppercase tracking-wider text-neutral-800 dark:text-neutral-200 mb-1">
+              Categoria *
+            </label>
+            <input
+              type="text"
+              id="form-categoria"
+              name="categoria"
+              required
+              list="categorias-list"
+              placeholder="Ex: Tecnologia"
+              class="w-full px-3 py-2 text-xs bg-gray-50 dark:bg-neutral-800 border-2 border-gray-300 dark:border-neutral-700 rounded-lg focus:outline-none focus:border-blue-600 font-bold uppercase text-neutral-900 dark:text-white"
+            />
+            <datalist id="categorias-list">
+              <option value="Tecnologia" />
+              <option value="Economia" />
+              <option value="Mercados" />
+              <option value="Ciência" />
+              <option value="Cidades" />
+              <option value="Segurança" />
+              <option value="Geral" />
+            </datalist>
+          </div>
+
+          <div>
+            <label for="form-autor" class="block text-xs font-bold uppercase tracking-wider text-neutral-800 dark:text-neutral-200 mb-1">
+              Autor
+            </label>
+            <input
+              type="text"
+              id="form-autor"
+              name="autor"
+              placeholder="Redação"
+              class="w-full px-3 py-2 text-xs bg-gray-50 dark:bg-neutral-800 border-2 border-gray-300 dark:border-neutral-700 rounded-lg focus:outline-none focus:border-blue-600 text-neutral-900 dark:text-white"
+            />
+          </div>
+
+          <div class="flex items-center pt-5 sm:pt-6">
+            <label class="relative flex items-center gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                id="form-publicado"
+                name="publicado"
+                checked
+                class="w-4 h-4 rounded border-2 border-black text-blue-600 focus:ring-0 cursor-pointer"
+              />
+              <span class="text-xs font-bold uppercase tracking-wider text-neutral-900 dark:text-neutral-100">
+                Publicar no portal
+              </span>
+            </label>
+          </div>
+        </div>
+
+        {/* Resumo (Lead da Notícia) */}
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label for="form-resumo" class="text-xs font-bold uppercase tracking-wider text-neutral-800 dark:text-neutral-200">
+              Resumo / Linha Fina (Lead) *
+            </label>
+            <span id="resumo-counter" class="text-[10px] font-mono text-gray-400">0 / 220 caracteres</span>
+          </div>
+          <textarea
+            id="form-resumo"
+            name="resumo"
+            rows="2"
+            required
+            placeholder="Breve resumo da matéria que aparece na capa, nos cartões e nos metadados de compartilhamento social..."
+            class="w-full px-3.5 py-2 text-xs bg-gray-50 dark:bg-neutral-800 border-2 border-gray-300 dark:border-neutral-700 rounded-lg focus:outline-none focus:border-blue-600 leading-relaxed text-neutral-900 dark:text-white"
+          ></textarea>
+        </div>
+
+        {/* Imagem Principal */}
+        <div>
+          <label for="form-imagem" class="block text-xs font-bold uppercase tracking-wider text-neutral-800 dark:text-neutral-200 mb-1">
+            URL da Imagem de Capa *
+          </label>
+          <div class="flex gap-2">
+            <input
+              type="url"
+              id="form-imagem"
+              name="imagem"
+              required
+              placeholder="https://images.unsplash.com/photo-..."
+              class="flex-1 px-3 py-2 text-xs bg-gray-50 dark:bg-neutral-800 border-2 border-gray-300 dark:border-neutral-700 rounded-lg focus:outline-none focus:border-blue-600 font-mono text-neutral-900 dark:text-white"
+            />
+          </div>
+
+          {/* Sugestões Rápidas de Imagens Jornalísticas */}
+          <div class="mt-2 flex flex-wrap items-center gap-1.5 text-[10px]">
+            <span class="text-gray-400 uppercase font-bold">Sugestões rápidas:</span>
+            <button type="button" class="quick-img px-2 py-0.5 rounded bg-gray-100 dark:bg-neutral-800 hover:bg-blue-600 hover:text-white transition-colors cursor-pointer" data-url="https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1200&auto=format&fit=crop">Tecnologia</button>
+            <button type="button" class="quick-img px-2 py-0.5 rounded bg-gray-100 dark:bg-neutral-800 hover:bg-blue-600 hover:text-white transition-colors cursor-pointer" data-url="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?q=80&w=1200&auto=format&fit=crop">Economia</button>
+            <button type="button" class="quick-img px-2 py-0.5 rounded bg-gray-100 dark:bg-neutral-800 hover:bg-blue-600 hover:text-white transition-colors cursor-pointer" data-url="https://images.unsplash.com/photo-1507668077129-56e32842fceb?q=80&w=1200&auto=format&fit=crop">Ciência</button>
+            <button type="button" class="quick-img px-2 py-0.5 rounded bg-gray-100 dark:bg-neutral-800 hover:bg-blue-600 hover:text-white transition-colors cursor-pointer" data-url="https://images.unsplash.com/photo-1477959858617-67f30bc75b82?q=80&w=1200&auto=format&fit=crop">Cidades</button>
+            <button type="button" class="quick-img px-2 py-0.5 rounded bg-gray-100 dark:bg-neutral-800 hover:bg-blue-600 hover:text-white transition-colors cursor-pointer" data-url="https://images.unsplash.com/photo-1563986768609-322da13575f3?q=80&w=1200&auto=format&fit=crop">Segurança</button>
+          </div>
+
+          {/* Preview da Imagem */}
+          <div id="img-preview-box" class="mt-2.5 h-28 rounded-lg border-2 border-dashed border-gray-300 dark:border-neutral-700 overflow-hidden relative flex items-center justify-center bg-gray-50 dark:bg-neutral-800">
+            <img id="img-preview" src="" alt="Prévia da imagem" class="w-full h-full object-cover hidden" />
+            <span id="img-preview-placeholder" class="text-xs text-gray-400 font-medium">Prévia da imagem aparecerá aqui</span>
+          </div>
+        </div>
+
+        {/* Conteúdo Completo (HTML Jornalístico) */}
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label for="form-conteudo" class="text-xs font-bold uppercase tracking-wider text-neutral-800 dark:text-neutral-200">
+              Conteúdo da Matéria *
+            </label>
+            <div class="flex items-center gap-1">
+              <button
+                type="button"
+                id="tab-edit"
+                class="px-2.5 py-1 text-[11px] font-bold uppercase rounded bg-black text-white dark:bg-white dark:text-black cursor-pointer"
+              >
+                Editor
+              </button>
+              <button
+                type="button"
+                id="tab-preview"
+                class="px-2.5 py-1 text-[11px] font-bold uppercase rounded bg-gray-100 text-gray-600 dark:bg-neutral-800 dark:text-neutral-300 hover:bg-gray-200 transition-colors cursor-pointer"
+              >
+                Pré-visualização
+              </button>
+            </div>
+          </div>
+
+          {/* Toolbar de Formatação Rápida */}
+          <div class="flex flex-wrap items-center gap-1 p-1.5 bg-neutral-100 dark:bg-neutral-800 border-2 border-b-0 border-gray-300 dark:border-neutral-700 rounded-t-lg text-xs font-mono">
+            <button type="button" class="tool-btn px-2 py-1 rounded bg-white dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 hover:bg-neutral-200 font-bold" data-tag="h2">H2</button>
+            <button type="button" class="tool-btn px-2 py-1 rounded bg-white dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 hover:bg-neutral-200 font-bold" data-tag="h3">H3</button>
+            <button type="button" class="tool-btn px-2 py-1 rounded bg-white dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 hover:bg-neutral-200 font-bold" data-tag="b"><strong>B</strong></button>
+            <button type="button" class="tool-btn px-2 py-1 rounded bg-white dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 hover:bg-neutral-200 italic" data-tag="i"><em>I</em></button>
+            <button type="button" class="tool-btn px-2 py-1 rounded bg-white dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 hover:bg-neutral-200" data-tag="p">&lt;p&gt;</button>
+            <button type="button" class="tool-btn px-2 py-1 rounded bg-white dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 hover:bg-neutral-200" data-tag="blockquote">❝ Citação</button>
+            <button type="button" class="tool-btn px-2 py-1 rounded bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-300 dark:border-blue-800 hover:bg-blue-100" data-tag="ad">+ Slot de Anúncio</button>
+          </div>
+
+          <div id="editor-container">
+            <textarea
+              id="form-conteudo"
+              name="conteudo"
+              rows="8"
+              required
+              placeholder="<p class='lead'>Escreva o primeiro parágrafo introdutório aqui...</p>&#10;&#10;<h2>Subtítulo da Seção</h2>&#10;<p>Desenvolvimento e apuração da notícia...</p>"
+              class="w-full p-3.5 text-xs bg-gray-50 dark:bg-neutral-800 border-2 border-gray-300 dark:border-neutral-700 rounded-b-lg focus:outline-none focus:border-blue-600 font-mono leading-relaxed text-neutral-900 dark:text-white"
+            ></textarea>
+          </div>
+
+          <div id="preview-container" class="hidden p-4 bg-white dark:bg-neutral-950 border-2 border-gray-300 dark:border-neutral-700 rounded-b-lg prose dark:prose-invert max-w-none text-xs min-h-[160px]">
+            {/* Conteúdo ao vivo injetado via JS */}
+          </div>
+        </div>
+
+        <div id="form-error" class="hidden p-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 text-xs font-medium"></div>
+
+        {/* Rodapé do Modal com Botões */}
+        <div class="pt-4 border-t-2 border-gray-100 dark:border-neutral-800 flex items-center justify-end gap-3 shrink-0">
+          <button
+            type="button"
+            id="cancel-modal-btn"
+            class="px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-2 border-gray-300 dark:border-neutral-700 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors text-neutral-800 dark:text-neutral-200 cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            id="save-noticia-btn"
+            class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-wider rounded-lg transition-colors flex items-center gap-2 cursor-pointer shadow-xs"
+          >
+            <span>Salvar Matéria</span>
+            <span>✓</span>
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  {/* =========================================================================
+      MODAL: SCRIPT SQL SUPABASE (Para cópia rápida)
+  ========================================================================= */}
+  <div id="sql-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="w-full max-w-2xl bg-white dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 rounded-2xl shadow-2xl p-6">
+      <div class="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-neutral-800">
+        <h3 class="text-sm font-black uppercase tracking-tight text-neutral-950 dark:text-white">
+          Configuração de Permissões no Supabase (SQL)
+        </h3>
+        <button id="close-sql-btn" class="text-lg font-bold text-gray-400 hover:text-black dark:hover:text-white cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <p class="text-xs text-gray-600 dark:text-neutral-300 mt-3 leading-relaxed">
+        Se ao criar ou editar uma matéria você receber um erro de <em>Row Level Security (RLS)</em>, execute este comando no <strong>SQL Editor</strong> do seu Supabase para conceder permissão de escrita ao painel:
+      </p>
+
+      <pre class="mt-3 p-3 bg-neutral-950 text-emerald-400 rounded-lg text-xs font-mono overflow-x-auto select-all leading-relaxed" id="sql-code-block">
+-- Permissão de escrita e gerenciamento para o painel de notícias
+CREATE POLICY "Permitir gerenciamento pelo painel admin"
+ON noticias
+FOR ALL
+TO public
+USING (true)
+WITH CHECK (true);</pre>
+
+      <div class="mt-4 flex items-center justify-end gap-3">
+        <button
+          id="copy-sql-btn"
+          class="px-4 py-2 bg-black text-white dark:bg-white dark:text-black font-mono text-xs font-bold uppercase rounded-lg hover:opacity-90 transition-opacity cursor-pointer flex items-center gap-2"
+        >
+          <span>Copiar Comando SQL</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  {/* =========================================================================
+      MODAL: AUTOMAÇÃO COM N8N, MAKE, GITHUB E VERCEL
+  ========================================================================= */}
+  <div id="automation-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-center justify-center p-3 sm:p-6 overflow-y-auto">
+    <div class="w-full max-w-3xl bg-white dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[90vh] flex flex-col">
+      
+      {/* Header do Modal de Automação */}
+      <div class="px-6 py-4 border-b-2 border-black dark:border-neutral-800 flex items-center justify-between bg-neutral-50 dark:bg-neutral-800/50 shrink-0">
+        <div class="flex items-center gap-2.5">
+          <span class="text-xl">🤖</span>
+          <div>
+            <h3 class="text-base font-black uppercase italic tracking-tight text-neutral-950 dark:text-white">
+              Central de Automação (n8n / Make / GitHub / Vercel)
+            </h3>
+            <p class="text-[11px] text-gray-500 dark:text-neutral-400">
+              Publique matérias 100% no piloto automático conectando seus fluxos ao portal
+            </p>
+          </div>
+        </div>
+        <button id="close-automation-btn" class="text-xl font-bold text-gray-400 hover:text-black dark:hover:text-white transition-colors p-1 cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      {/* Navegação de Abas do Modal */}
+      <div class="flex border-b border-gray-200 dark:border-neutral-800 bg-gray-100 dark:bg-neutral-950 text-xs font-bold uppercase overflow-x-auto shrink-0">
+        <button type="button" class="auto-tab-btn px-4 py-3 border-b-2 border-purple-600 text-purple-600 dark:text-purple-400 bg-white dark:bg-neutral-900 shrink-0 cursor-pointer" data-target="tab-webhook">
+          1. Endpoint Webhook
+        </button>
+        <button type="button" class="auto-tab-btn px-4 py-3 border-b-2 border-transparent text-gray-500 hover:text-black dark:hover:text-white shrink-0 cursor-pointer" data-target="tab-n8n">
+          2. Fluxo n8n Pronto
+        </button>
+        <button type="button" class="auto-tab-btn px-4 py-3 border-b-2 border-transparent text-gray-500 hover:text-black dark:hover:text-white shrink-0 cursor-pointer" data-target="tab-make">
+          3. Make (Integromat)
+        </button>
+        <button type="button" class="auto-tab-btn px-4 py-3 border-b-2 border-transparent text-gray-500 hover:text-black dark:hover:text-white shrink-0 cursor-pointer" data-target="tab-github-vercel">
+          4. GitHub & Vercel
+        </button>
+      </div>
+
+      {/* Conteúdo das Abas */}
+      <div class="p-6 overflow-y-auto flex-1 space-y-4 text-xs">
+        
+        {/* ABA 1: ENDPOINT WEBHOOK */}
+        <div id="tab-webhook" class="auto-tab-content space-y-4">
+          <div class="bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 p-3.5 rounded-xl text-purple-900 dark:text-purple-300 leading-relaxed">
+            <strong>Como funciona:</strong> Qualquer ferramenta (n8n, Make, scripts Python, Zapier) pode enviar uma requisição <code>POST</code> com os dados da notícia e ela será gravada imediatamente no <strong>Supabase</strong> e aparecerá na capa do portal.
+          </div>
+
+          <div class="space-y-3">
+            <div>
+              <span class="font-bold uppercase text-[10px] text-gray-500 dark:text-neutral-400">URL do Webhook (Endpoint):</span>
+              <div class="mt-1 flex items-center gap-2">
+                <input
+                  type="text"
+                  readonly
+                  id="webhook-url-input"
+                  value="https://seu-portal.vercel.app/api/v1/publish"
+                  class="flex-1 px-3 py-2 bg-neutral-100 dark:bg-neutral-800 border border-gray-300 dark:border-neutral-700 rounded-lg font-mono text-xs text-neutral-900 dark:text-white select-all"
+                />
+                <button type="button" id="copy-webhook-url" class="px-3 py-2 bg-black text-white dark:bg-white dark:text-black rounded-lg font-bold text-xs uppercase cursor-pointer hover:opacity-80">
+                  Copiar
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <span class="font-bold uppercase text-[10px] text-gray-500 dark:text-neutral-400">Autenticação (Header HTTP):</span>
+              <div class="mt-1 flex items-center gap-2">
+                <input
+                  type="text"
+                  readonly
+                  value="x-api-key: seu_token_secreto_n8n_make"
+                  class="flex-1 px-3 py-2 bg-neutral-100 dark:bg-neutral-800 border border-gray-300 dark:border-neutral-700 rounded-lg font-mono text-xs text-neutral-900 dark:text-white select-all"
+                />
+              </div>
+              <p class="text-[10px] text-gray-400 mt-1">
+                Configure a variável <code>WEBHOOK_API_KEY</code> no seu arquivo <code>.env</code> ou na Vercel para personalizar este token.
+              </p>
+            </div>
+
+            <div>
+              <span class="font-bold uppercase text-[10px] text-gray-500 dark:text-neutral-400">Teste Rápido com cURL:</span>
+              <div class="relative mt-1">
+                <pre class="p-3 bg-neutral-950 text-emerald-400 rounded-lg font-mono text-[11px] overflow-x-auto leading-relaxed select-all" id="curl-test-code">{`curl -X POST https://seu-portal.vercel.app/api/v1/publish \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: seu_token_secreto_n8n_make" \\
+  -d '{
+    "titulo": "Nova Descoberta Científica Revoluciona Produção de Energia Solar",
+    "resumo": "Pesquisadores desenvolvem células solares com eficiência recorde capazes de gerar energia mesmo em dias nublados.",
+    "conteudo": "<p class=\\"lead\\">Cientistas anunciaram um avanço significativo na tecnologia de painéis solares.</p><h2>Eficiência Inédita</h2><p>Os novos módulos apresentaram ganho de 40% na conversão fotovoltaica.</p><!-- AD_SLOT_1 --><p>A previsão de comercialização é para os próximos dois anos.</p>",
+    "categoria": "Ciência",
+    "autor": "Redação Automática / IA",
+    "publicado": true
+  }'`}</pre>
+                <button
+                  type="button"
+                  id="copy-curl-btn"
+                  class="absolute top-2 right-2 px-2.5 py-1 bg-neutral-800 hover:bg-neutral-700 text-white rounded text-[10px] font-mono cursor-pointer"
+                >
+                  Copiar cURL
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ABA 2: N8N WORKFLOW */}
+        <div id="tab-n8n" class="auto-tab-content hidden space-y-4">
+          <div class="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 p-3.5 rounded-xl text-blue-900 dark:text-blue-300 leading-relaxed">
+            <strong>Fluxo Completo no n8n:</strong> Criamos um arquivo de fluxo pronto com leitor de <strong>RSS (Fontes de Notícias)</strong> ➔ <strong>IA Jornalista (Gemini ou OpenAI)</strong> que reescreve a notícia com títulos e subtítulos profissionais ➔ <strong>HTTP Request</strong> que publica direto no seu portal.
+          </div>
+
+          <div class="space-y-3">
+            <h4 class="font-bold uppercase text-xs text-neutral-900 dark:text-white">Como Importar no seu n8n:</h4>
+            <ol class="list-decimal list-inside space-y-2 text-gray-600 dark:text-neutral-300 leading-relaxed">
+              <li>Clique no botão <strong>"Copiar JSON do Fluxo n8n"</strong> abaixo.</li>
+              <li>Abra o seu <strong>n8n</strong> (local ou na nuvem).</li>
+              <li>No canvas do n8n, pressione <kbd class="px-1.5 py-0.5 bg-gray-200 dark:bg-neutral-800 rounded font-mono">Ctrl + V</kbd> (ou <kbd class="px-1.5 py-0.5 bg-gray-200 dark:bg-neutral-800 rounded font-mono">Cmd + V</kbd> no Mac).</li>
+              <li>No nó <strong>"Publicar no Portal de Notícias"</strong>, atualize a URL para o link da sua Vercel e sua <code>x-api-key</code>.</li>
+              <li>Ative o workflow! O n8n publicará notícias no piloto automático no intervalo que você definir (ex: a cada 1 hora).</li>
+            </ol>
+
+            <div class="pt-2 flex items-center gap-3">
+              <button
+                type="button"
+                id="copy-n8n-json-btn"
+                class="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-colors flex items-center gap-2 cursor-pointer shadow-xs"
+              >
+                <span>📋</span>
+                <span>Copiar JSON do Fluxo n8n</span>
+              </button>
+
+              <a
+                href="/automation/n8n-workflow-portal-noticias.json"
+                download="n8n-workflow-portal-noticias.json"
+                class="px-4 py-2.5 bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-900 dark:text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
+              >
+                Baixar Arquivo .JSON
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* ABA 3: MAKE (INTEGROMAT) */}
+        <div id="tab-make" class="auto-tab-content hidden space-y-4">
+          <div class="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 p-3.5 rounded-xl text-emerald-900 dark:text-emerald-300 leading-relaxed">
+            <strong>Configuração no Make:</strong> Utilize o módulo padrão <strong>HTTP ➔ Make a request</strong> para publicar notícias a partir de feeds RSS ou Google News com IA.
+          </div>
+
+          <div class="space-y-3 text-gray-600 dark:text-neutral-300">
+            <h4 class="font-bold uppercase text-xs text-neutral-900 dark:text-white">Passo a Passo no Módulo HTTP do Make:</h4>
+            <div class="bg-gray-50 dark:bg-neutral-800/60 p-3.5 rounded-xl border border-gray-200 dark:border-neutral-700 font-mono text-[11px] space-y-2">
+              <div><strong class="text-neutral-900 dark:text-white">URL:</strong> <code>https://seu-portal.vercel.app/api/v1/publish</code></div>
+              <div><strong class="text-neutral-900 dark:text-white">Method:</strong> <code>POST</code></div>
+              <div>
+                <strong class="text-neutral-900 dark:text-white">Headers:</strong>
+                <ul class="list-disc list-inside pl-2 text-[10px]">
+                  <li>Name: <code>Content-Type</code> | Value: <code>application/json</code></li>
+                  <li>Name: <code>x-api-key</code> | Value: <code>seu_token_secreto_n8n_make</code></li>
+                </ul>
+              </div>
+              <div><strong class="text-neutral-900 dark:text-white">Body type:</strong> <code>Raw</code></div>
+              <div><strong class="text-neutral-900 dark:text-white">Content type:</strong> <code>JSON (application/json)</code></div>
+              <div>
+                <strong class="text-neutral-900 dark:text-white">Request content (exemplo):</strong>
+                <pre class="mt-1 p-2 bg-neutral-950 text-neutral-200 rounded text-[10px] overflow-x-auto">{`{
+  "titulo": "{{1.title}}",
+  "resumo": "{{2.resumo}}",
+  "conteudo": "{{2.conteudo}}",
+  "categoria": "Tecnologia",
+  "autor": "Redação Make",
+  "publicado": true
+}`}</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ABA 4: GITHUB & VERCEL */}
+        <div id="tab-github-vercel" class="auto-tab-content hidden space-y-4">
+          <div class="bg-neutral-100 dark:bg-neutral-800/80 border border-neutral-300 dark:border-neutral-700 p-3.5 rounded-xl text-neutral-900 dark:text-white leading-relaxed">
+            <strong>Hospedagem de Produção:</strong> O projeto já está totalmente configurado com o adaptador oficial <strong><code>@astrojs/vercel</code></strong> para SSR de altíssima performance, com cache automático e rotas de API serverless.
+          </div>
+
+          <div class="space-y-3 text-gray-600 dark:text-neutral-300">
+            <h4 class="font-bold uppercase text-xs text-neutral-900 dark:text-white">1. Como enviar para o GitHub:</h4>
+            <pre class="p-3 bg-neutral-950 text-neutral-200 rounded-lg font-mono text-[11px] overflow-x-auto select-all leading-relaxed">git init
+git add .
+git commit -m "feat: portal de noticias com painel admin e webhook n8n"
+git branch -M main
+git remote add origin https://github.com/SEU_USUARIO/portal-noticias.git
+git push -u origin main</pre>
+
+            <h4 class="font-bold uppercase text-xs text-neutral-900 dark:text-white mt-3">2. Conectar na Vercel:</h4>
+            <ol class="list-decimal list-inside space-y-1.5 leading-relaxed">
+              <li>Acesse <a href="https://vercel.com" target="_blank" class="text-blue-600 underline">vercel.com</a> e clique em <strong>"Add New" ➔ "Project"</strong>.</li>
+              <li>Selecione o repositório do seu GitHub. O framework <strong>Astro</strong> será detectado automaticamente.</li>
+              <li>Na seção <strong>"Environment Variables"</strong> da Vercel, adicione:
+                <ul class="list-disc list-inside pl-4 mt-1 space-y-1 font-mono text-[10px] text-neutral-900 dark:text-white">
+                  <li><code>PUBLIC_SUPABASE_URL</code>: Sua URL do Supabase</li>
+                  <li><code>PUBLIC_SUPABASE_ANON_KEY</code>: Sua chave anon pública</li>
+                  <li><code>SUPABASE_SERVICE_ROLE_KEY</code>: Sua chave secreta service role</li>
+                  <li><code>ADMIN_PASSWORD</code>: Sua senha de acesso ao painel admin</li>
+                  <li><code>WEBHOOK_API_KEY</code>: Seu token secreto para o n8n e Make</li>
+                  <li><code>PUBLIC_SITE_URL</code>: A URL final do seu site na Vercel</li>
+                </ul>
+              </li>
+              <li>Clique em <strong>"Deploy"</strong>. Em menos de 1 minuto seu portal estará rodando globalmente!</li>
+            </ol>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Rodapé do Modal */}
+      <div class="px-6 py-3 border-t border-gray-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/50 flex items-center justify-end shrink-0">
+        <button
+          type="button"
+          id="close-automation-footer-btn"
+          class="px-4 py-2 bg-black text-white dark:bg-white dark:text-black font-bold text-xs uppercase rounded-lg hover:opacity-80 transition-opacity cursor-pointer"
+        >
+          Fechar
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+</Layout>
+
+{/* =========================================================================
+    JAVASCRIPT DO PAINEL ADMINISTRATIVO (Interatividade em Tempo Real)
+========================================================================= */}
+<script is:inline>
+  // --------------------------------------------------------------------------
+  // 1. Fluxo de Autenticação (Login / Logout)
+  // --------------------------------------------------------------------------
+  const loginForm = document.getElementById('login-form');
+  if (loginForm) {
+    const pwdInput = document.getElementById('admin-password');
+    const togglePwd = document.getElementById('toggle-pwd');
+    const loginError = document.getElementById('login-error');
+    const loginBtn = document.getElementById('login-btn');
+
+    togglePwd?.addEventListener('click', () => {
+      if (pwdInput.type === 'password') {
+        pwdInput.type = 'text';
+      } else {
+        pwdInput.type = 'password';
+      }
+    });
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      loginError.classList.add('hidden');
+      loginBtn.disabled = true;
+      loginBtn.innerText = 'Verificando...';
+
+      try {
+        const res = await fetch('/api/admin/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pwdInput.value }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Falha ao autenticar.');
+        }
+
+        // Login efetuado com sucesso: recarrega a página para exibir o dashboard
+        window.location.reload();
+      } catch (err) {
+        loginError.innerText = err.message;
+        loginError.classList.remove('hidden');
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = '<span>Entrar no Painel</span><span>→</span>';
+      }
+    });
+  }
+
+  const logoutBtn = document.getElementById('logout-btn');
+  logoutBtn?.addEventListener('click', async () => {
+    if (!confirm('Deseja encerrar a sessão de administrador?')) return;
+    try {
+      await fetch('/api/admin/auth', { method: 'DELETE' });
+      window.location.reload();
+    } catch {
+      window.location.reload();
+    }
+  });
+
+  // --------------------------------------------------------------------------
+  // 2. Filtros e Pesquisa na Tabela
+  // --------------------------------------------------------------------------
+  const searchInput = document.getElementById('search-input');
+  const categoryFilter = document.getElementById('category-filter');
+  const statusFilter = document.getElementById('status-filter');
+  const rows = document.querySelectorAll('.noticia-row');
+  const emptyState = document.getElementById('empty-state');
+
+  function filterTable() {
+    const query = (searchInput?.value || '').toLowerCase().trim();
+    const cat = (categoryFilter?.value || '').toLowerCase();
+    const status = (statusFilter?.value || '').toLowerCase();
+
+    let visibleCount = 0;
+
+    rows.forEach((row) => {
+      const rowTitulo = row.getAttribute('data-titulo') || '';
+      const rowAutor = row.getAttribute('data-autor') || '';
+      const rowCat = (row.getAttribute('data-categoria') || '').toLowerCase();
+      const rowStatus = (row.getAttribute('data-publicado') || '').toLowerCase();
+
+      const matchQuery = !query || rowTitulo.includes(query) || rowAutor.includes(query);
+      const matchCat = !cat || rowCat === cat;
+      const matchStatus = !status || rowStatus === status;
+
+      if (matchQuery && matchCat && matchStatus) {
+        row.style.display = '';
+        visibleCount++;
+      } else {
+        row.style.display = 'none';
+      }
+    });
+
+    if (emptyState) {
+      if (visibleCount === 0) {
+        emptyState.classList.remove('hidden');
+      } else {
+        emptyState.classList.add('hidden');
+      }
+    }
+  }
+
+  searchInput?.addEventListener('input', filterTable);
+  categoryFilter?.addEventListener('change', filterTable);
+  statusFilter?.addEventListener('change', filterTable);
+
+  // --------------------------------------------------------------------------
+  // 3. Modal de Criação / Edição de Notícias
+  // --------------------------------------------------------------------------
+  const modal = document.getElementById('noticia-modal');
+  const modalTitle = document.getElementById('modal-title');
+  const noticiaForm = document.getElementById('noticia-form');
+  const formId = document.getElementById('form-id');
+  const formTitulo = document.getElementById('form-titulo');
+  const formSlug = document.getElementById('form-slug');
+  const formCategoria = document.getElementById('form-categoria');
+  const formAutor = document.getElementById('form-autor');
+  const formPublicado = document.getElementById('form-publicado');
+  const formResumo = document.getElementById('form-resumo');
+  const formImagem = document.getElementById('form-imagem');
+  const formConteudo = document.getElementById('form-conteudo');
+  const formError = document.getElementById('form-error');
+  const saveBtn = document.getElementById('save-noticia-btn');
+  const resumoCounter = document.getElementById('resumo-counter');
+
+  const imgPreview = document.getElementById('img-preview');
+  const imgPreviewPlaceholder = document.getElementById('img-preview-placeholder');
+
+  // Gerador automático de Slug amigável SEO
+  function slugify(text) {
+    return text
+      .toString()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/[\s_-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  let isEditingSlugManually = false;
+
+  formTitulo?.addEventListener('input', () => {
+    if (!isEditingSlugManually) {
+      formSlug.value = slugify(formTitulo.value);
+    }
+  });
+
+  formSlug?.addEventListener('input', () => {
+    isEditingSlugManually = true;
+  });
+
+  formResumo?.addEventListener('input', () => {
+    const len = formResumo.value.length;
+    resumoCounter.innerText = `${len} / 220 caracteres`;
+  });
+
+  // Atualização em tempo real da prévia da imagem
+  function updateImagePreview(url) {
+    if (url && url.startsWith('http')) {
+      imgPreview.src = url;
+      imgPreview.classList.remove('hidden');
+      imgPreviewPlaceholder?.classList.add('hidden');
+    } else {
+      imgPreview.classList.add('hidden');
+      imgPreviewPlaceholder?.classList.remove('hidden');
+    }
+  }
+
+  formImagem?.addEventListener('input', () => {
+    updateImagePreview(formImagem.value.trim());
+  });
+
+  // Botões de sugestão rápida de imagem
+  document.querySelectorAll('.quick-img').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const url = btn.getAttribute('data-url');
+      if (url) {
+        formImagem.value = url;
+        updateImagePreview(url);
+      }
+    });
+  });
+
+  // Alternador de Abas Editor vs Pré-visualização
+  const tabEdit = document.getElementById('tab-edit');
+  const tabPreview = document.getElementById('tab-preview');
+  const editorContainer = document.getElementById('editor-container');
+  const previewContainer = document.getElementById('preview-container');
+
+  tabEdit?.addEventListener('click', () => {
+    editorContainer?.classList.remove('hidden');
+    previewContainer?.classList.add('hidden');
+    tabEdit.className = 'px-2.5 py-1 text-[11px] font-bold uppercase rounded bg-black text-white dark:bg-white dark:text-black cursor-pointer';
+    tabPreview.className = 'px-2.5 py-1 text-[11px] font-bold uppercase rounded bg-gray-100 text-gray-600 dark:bg-neutral-800 dark:text-neutral-300 hover:bg-gray-200 transition-colors cursor-pointer';
+  });
+
+  tabPreview?.addEventListener('click', () => {
+    editorContainer?.classList.add('hidden');
+    previewContainer?.classList.remove('hidden');
+    previewContainer.innerHTML = formConteudo?.value || '<p class="text-gray-400 italic">Nenhum conteúdo digitado ainda.</p>';
+    tabPreview.className = 'px-2.5 py-1 text-[11px] font-bold uppercase rounded bg-black text-white dark:bg-white dark:text-black cursor-pointer';
+    tabEdit.className = 'px-2.5 py-1 text-[11px] font-bold uppercase rounded bg-gray-100 text-gray-600 dark:bg-neutral-800 dark:text-neutral-300 hover:bg-gray-200 transition-colors cursor-pointer';
+  });
+
+  // Toolbar de Formatação Rápida
+  document.querySelectorAll('.tool-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const tag = btn.getAttribute('data-tag');
+      if (!formConteudo) return;
+
+      const start = formConteudo.selectionStart;
+      const end = formConteudo.selectionEnd;
+      const selected = formConteudo.value.substring(start, end);
+      let insertion = '';
+
+      if (tag === 'ad') {
+        insertion = '\n<!-- AD_SLOT_1 -->\n';
+      } else if (tag === 'h2') {
+        insertion = `\n<h2>${selected || 'Subtítulo da Seção'}</h2>\n`;
+      } else if (tag === 'h3') {
+        insertion = `\n<h3>${selected || 'Tópico Específico'}</h3>\n`;
+      } else if (tag === 'b') {
+        insertion = `<strong>${selected || 'texto em negrito'}</strong>`;
+      } else if (tag === 'i') {
+        insertion = `<em>${selected || 'texto em itálico'}</em>`;
+      } else if (tag === 'p') {
+        insertion = `\n<p>${selected || 'Novo parágrafo...'}</p>\n`;
+      } else if (tag === 'blockquote') {
+        insertion = `\n<blockquote>"${selected || 'Declaração ou citação de destaque...'}"</blockquote>\n`;
+      }
+
+      formConteudo.setRangeText(insertion, start, end, 'end');
+      formConteudo.focus();
+    });
+  });
+
+  // Abertura do Modal de Criação
+  const btnNovaNoticia = document.getElementById('btn-nova-noticia');
+  btnNovaNoticia?.addEventListener('click', () => {
+    formId.value = '';
+    noticiaForm?.reset();
+    isEditingSlugManually = false;
+    modalTitle.innerText = 'Publicar Nova Matéria';
+    formError?.classList.add('hidden');
+    formPublicado.checked = true;
+    updateImagePreview('');
+    modal?.classList.remove('hidden');
+    modal?.classList.add('flex');
+    tabEdit?.click();
+    formTitulo?.focus();
+  });
+
+  function closeModal() {
+    modal?.classList.add('hidden');
+    modal?.classList.remove('flex');
+  }
+
+  document.getElementById('close-modal-btn')?.addEventListener('click', closeModal);
+  document.getElementById('cancel-modal-btn')?.addEventListener('click', closeModal);
+
+  // Submissão do Formulário de Criação / Edição
+  noticiaForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    formError?.classList.add('hidden');
+    saveBtn.disabled = true;
+    saveBtn.innerText = 'Salvando no Supabase...';
+
+    const id = formId.value;
+    const isEdit = Boolean(id);
+
+    const payload = {
+      id: id || undefined,
+      titulo: formTitulo.value.trim(),
+      slug: formSlug.value.trim() || slugify(formTitulo.value),
+      categoria: formCategoria.value.trim(),
+      autor: formAutor.value.trim() || 'Redação',
+      publicado: formPublicado.checked,
+      resumo: formResumo.value.trim(),
+      imagem: formImagem.value.trim(),
+      conteudo: formConteudo.value.trim(),
+    };
+
+    try {
+      const res = await fetch('/api/admin/noticias', {
+        method: isEdit ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Erro ao salvar notícia.');
+      }
+
+      // Sucesso: fecha o modal e recarrega para sincronizar
+      closeModal();
+      window.location.reload();
+    } catch (err) {
+      formError.innerText = err.message;
+      formError.classList.remove('hidden');
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = '<span>Salvar Matéria</span><span>✓</span>';
+    }
+  });
+
+  // --------------------------------------------------------------------------
+  // 4. Ações da Tabela: Editar, Alternar Status e Excluir
+  // --------------------------------------------------------------------------
+
+  // Edição
+  document.querySelectorAll('.edit-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const id = btn.getAttribute('data-id');
+      if (!id) return;
+
+      // Busca os dados da linha na tabela para pré-carregar
+      const row = btn.closest('tr');
+      const titulo = row.querySelector('td:nth-child(2) div:first-child')?.innerText.trim();
+      const slugText = row.querySelector('td:nth-child(2) div:last-child')?.innerText.trim().replace(/^\//, '');
+      const categoria = row.getAttribute('data-categoria') || '';
+      const autor = row.querySelector('td:nth-child(4)')?.innerText.trim();
+      const isPublicado = row.getAttribute('data-publicado') === 'publicado';
+      const imgUrl = row.querySelector('img')?.src || '';
+
+      formId.value = id;
+      formTitulo.value = titulo || '';
+      formSlug.value = slugText || '';
+      formCategoria.value = categoria;
+      formAutor.value = autor || 'Redação';
+      formPublicado.checked = isPublicado;
+      formImagem.value = imgUrl;
+      updateImagePreview(imgUrl);
+
+      isEditingSlugManually = true;
+      modalTitle.innerText = 'Editar Matéria';
+      formError?.classList.add('hidden');
+
+      // Busca o conteúdo completo via API para garantir integridade
+      try {
+        const res = await fetch(`/api/admin/noticias`);
+        const data = await res.json();
+        const found = (data.noticias || []).find((n) => n.id === id);
+        if (found) {
+          formResumo.value = found.resumo || '';
+          formConteudo.value = found.conteudo || '';
+          formSlug.value = found.slug || slugText;
+          resumoCounter.innerText = `${found.resumo?.length || 0} / 220 caracteres`;
+        }
+      } catch (err) {
+        console.warn('Erro ao carregar detalhes completos', err);
+      }
+
+      modal?.classList.remove('hidden');
+      modal?.classList.add('flex');
+      tabEdit?.click();
+    });
+  });
+
+  // Alternar Status Publicado / Rascunho com 1 clique
+  document.querySelectorAll('.toggle-status-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const id = btn.getAttribute('data-id');
+      const currentStatus = btn.getAttribute('data-status') === 'true';
+      const nextStatus = !currentStatus;
+
+      btn.disabled = true;
+      btn.innerText = 'Salvando...';
+
+      try {
+        const res = await fetch('/api/admin/noticias', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, publicado: nextStatus }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erro ao alterar status.');
+
+        window.location.reload();
+      } catch (err) {
+        alert(err.message);
+        window.location.reload();
+      }
+    });
+  });
+
+  // Exclusão com confirmação
+  document.querySelectorAll('.delete-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const id = btn.getAttribute('data-id');
+      const titulo = btn.getAttribute('data-titulo') || 'esta matéria';
+
+      if (!confirm(`Tem certeza que deseja excluir permanentemente a matéria:\n"${titulo}"?`)) {
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/admin/noticias?id=${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erro ao excluir.');
+
+        window.location.reload();
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // 5. Modal de Instruções SQL Supabase
+  // --------------------------------------------------------------------------
+  const sqlModal = document.getElementById('sql-modal');
+  const openSqlGuide = document.getElementById('open-sql-guide');
+  const closeSqlBtn = document.getElementById('close-sql-btn');
+  const copySqlBtn = document.getElementById('copy-sql-btn');
+  const sqlCodeBlock = document.getElementById('sql-code-block');
+
+  openSqlGuide?.addEventListener('click', () => {
+    sqlModal?.classList.remove('hidden');
+    sqlModal?.classList.add('flex');
+  });
+
+  closeSqlBtn?.addEventListener('click', () => {
+    sqlModal?.classList.add('hidden');
+    sqlModal?.classList.remove('flex');
+  });
+
+  copySqlBtn?.addEventListener('click', () => {
+    const text = sqlCodeBlock?.innerText || '';
+    navigator.clipboard.writeText(text).then(() => {
+      copySqlBtn.innerHTML = '<span>Copiado com Sucesso! ✓</span>';
+      setTimeout(() => {
+        copySqlBtn.innerHTML = '<span>Copiar Comando SQL</span>';
+      }, 2500);
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // 6. Modal de Central de Automação (n8n, Make, GitHub, Vercel)
+  // --------------------------------------------------------------------------
+  const autoModal = document.getElementById('automation-modal');
+  const openAutoGuide = document.getElementById('open-automation-guide');
+  const closeAutoBtn = document.getElementById('close-automation-btn');
+  const closeAutoFooterBtn = document.getElementById('close-automation-footer-btn');
+  const webhookUrlInput = document.getElementById('webhook-url-input');
+  const copyWebhookUrl = document.getElementById('copy-webhook-url');
+  const copyCurlBtn = document.getElementById('copy-curl-btn');
+  const curlTestCode = document.getElementById('curl-test-code');
+  const copyN8nJsonBtn = document.getElementById('copy-n8n-json-btn');
+  const autoTabBtns = document.querySelectorAll('.auto-tab-btn');
+  const autoTabContents = document.querySelectorAll('.auto-tab-content');
+
+  // Ajusta a URL dinâmica baseada na origem atual do navegador
+  if (webhookUrlInput) {
+    const origin = window.location.origin;
+    const fullEndpoint = `${origin}/api/v1/publish`;
+    webhookUrlInput.value = fullEndpoint;
+
+    if (curlTestCode) {
+      curlTestCode.innerText = curlTestCode.innerText.replace('https://seu-portal.vercel.app/api/v1/publish', fullEndpoint);
+    }
+  }
+
+  // Abertura e Fechamento
+  openAutoGuide?.addEventListener('click', () => {
+    autoModal?.classList.remove('hidden');
+    autoModal?.classList.add('flex');
+  });
+
+  const closeAutoModal = () => {
+    autoModal?.classList.add('hidden');
+    autoModal?.classList.remove('flex');
+  };
+
+  closeAutoBtn?.addEventListener('click', closeAutoModal);
+  closeAutoFooterBtn?.addEventListener('click', closeAutoModal);
+
+  // Alternância de Abas
+  autoTabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.getAttribute('data-target');
+      
+      autoTabBtns.forEach(b => {
+        b.classList.remove('border-purple-600', 'text-purple-600', 'dark:text-purple-400', 'bg-white', 'dark:bg-neutral-900');
+        b.classList.add('border-transparent', 'text-gray-500');
+      });
+
+      btn.classList.add('border-purple-600', 'text-purple-600', 'dark:text-purple-400', 'bg-white', 'dark:bg-neutral-900');
+      btn.classList.remove('border-transparent', 'text-gray-500');
+
+      autoTabContents.forEach(content => {
+        if (content.id === targetId) {
+          content.classList.remove('hidden');
+        } else {
+          content.classList.add('hidden');
+        }
+      });
+    });
+  });
+
+  // Copiar URL do Webhook
+  copyWebhookUrl?.addEventListener('click', () => {
+    if (webhookUrlInput) {
+      navigator.clipboard.writeText(webhookUrlInput.value).then(() => {
+        copyWebhookUrl.innerText = 'Copiado! ✓';
+        setTimeout(() => {
+          copyWebhookUrl.innerText = 'Copiar';
+        }, 2000);
+      });
+    }
+  });
+
+  // Copiar cURL
+  copyCurlBtn?.addEventListener('click', () => {
+    if (curlTestCode) {
+      navigator.clipboard.writeText(curlTestCode.innerText).then(() => {
+        copyCurlBtn.innerText = 'Copiado! ✓';
+        setTimeout(() => {
+          copyCurlBtn.innerText = 'Copiar cURL';
+        }, 2000);
+      });
+    }
+  });
+
+  // Copiar JSON do Fluxo n8n
+  copyN8nJsonBtn?.addEventListener('click', async () => {
+    copyN8nJsonBtn.innerText = 'Carregando...';
+    try {
+      const res = await fetch('/automation/n8n-workflow-portal-noticias.json');
+      if (!res.ok) throw new Error('Não foi possível carregar o arquivo n8n');
+      const data = await res.json();
+      
+      // Atualiza a URL do webhook no JSON copiado com a URL atual
+      const origin = window.location.origin;
+      if (data.nodes) {
+        const httpNode = data.nodes.find(n => n.id === 'publish-webhook-1' || n.name === 'Publicar no Portal de Notícias');
+        if (httpNode && httpNode.parameters) {
+          httpNode.parameters.url = `${origin}/api/v1/publish`;
+        }
+      }
+
+      await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+      copyN8nJsonBtn.innerHTML = '<span>Copiado com Sucesso! ✓ (Cole com Ctrl+V no n8n)</span>';
+      setTimeout(() => {
+        copyN8nJsonBtn.innerHTML = '<span>📋</span><span>Copiar JSON do Fluxo n8n</span>';
+      }, 3500);
+    } catch (err) {
+      alert('Erro ao copiar fluxo n8n: ' + err.message);
+      copyN8nJsonBtn.innerHTML = '<span>📋</span><span>Copiar JSON do Fluxo n8n</span>';
+    }
+  });
+</script>

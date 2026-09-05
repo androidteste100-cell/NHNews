@@ -1,0 +1,86 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import NewsCard from '../../components/NewsCard.astro';
+import AdBanner from '../../components/AdBanner.astro';
+import { getNoticiasByCategory } from '../../lib/supabase';
+
+const { categoria } = Astro.params;
+
+if (!categoria) {
+  return Astro.redirect('/404');
+}
+
+const noticias = await getNoticiasByCategory(categoria, 18);
+
+const siteUrl = Astro.site?.origin || Astro.url.origin;
+const canonicalUrl = `${siteUrl}/categoria/${encodeURIComponent(categoria)}`;
+
+const breadcrumbs = [
+  { name: 'Início', item: siteUrl },
+  { name: categoria, item: canonicalUrl },
+];
+---
+
+<Layout
+  title={`Notícias sobre ${categoria}`}
+  description={`Confira todas as reportagens, notícias e análises sobre ${categoria} atualizadas em tempo real.`}
+  canonicalURL={canonicalUrl}
+  breadcrumbs={breadcrumbs}
+>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    
+    <!-- Navegação Breadcrumb Bento -->
+    <nav aria-label="Breadcrumb" class="mb-5 text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
+      <a href="/" class="hover:text-blue-600 transition-colors">Início</a>
+      <span>/</span>
+      <span class="text-black dark:text-white">{categoria}</span>
+    </nav>
+
+    <!-- Título da Categoria Bento -->
+    <div class="border-b-2 border-black dark:border-neutral-700 pb-3 mb-8 flex flex-col sm:flex-row sm:items-baseline justify-between gap-3">
+      <div>
+        <h1 class="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight uppercase italic text-neutral-950 dark:text-white">
+          {categoria}
+        </h1>
+        <p class="text-xs sm:text-sm text-gray-500 mt-1">
+          Acompanhe os acontecimentos mais recentes e análises aprofundadas sobre {categoria}.
+        </p>
+      </div>
+      <span class="text-[10px] font-mono font-bold bg-black text-white px-2.5 py-1 rounded uppercase shrink-0">
+        {noticias.length} {noticias.length === 1 ? 'ARTIGO DISPONÍVEL' : 'ARTIGOS DISPONÍVEIS'}
+      </span>
+    </div>
+
+    {noticias.length > 0 ? (
+      <>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {noticias.map((item, index) => (
+            <>
+              <NewsCard noticia={item} variant="standard" />
+              {index === 2 && (
+                <div class="col-span-full my-4 flex justify-center">
+                  <div class="w-full max-w-[728px] bg-white dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 rounded-xl p-2">
+                    <AdBanner slotType="header" customClass="!my-0" />
+                  </div>
+                </div>
+              )}
+            </>
+          ))}
+        </div>
+      </>
+    ) : (
+      <div class="text-center py-20 bg-white dark:bg-neutral-900 rounded-xl border-2 border-black dark:border-neutral-700 p-8">
+        <h2 class="text-xl font-black uppercase italic text-neutral-900 dark:text-white mb-2">
+          Nenhuma notícia encontrada nesta categoria
+        </h2>
+        <p class="text-gray-500 max-w-md mx-auto text-xs sm:text-sm mb-6">
+          As matérias de {categoria} serão publicadas automaticamente pelo fluxo de automação.
+        </p>
+        <a href="/" class="inline-block bg-black text-white text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-lg hover:bg-blue-600 transition-colors">
+          Voltar para a Página Inicial
+        </a>
+      </div>
+    )}
+
+  </div>
+</Layout>

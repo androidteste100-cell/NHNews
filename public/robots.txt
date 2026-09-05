@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+# Desabilitar rastreamento de endpoints internos ou administrativos
+Disallow: /api/
+
+Sitemap: https://seu-portal.vercel.app/sitemap.xml

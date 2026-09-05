@@ -1,0 +1,109 @@
+{
+  "name": "Automação Portal de Notícias (RSS + IA + Publicação Automática)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger-1",
+      "name": "Disparo a Cada 1 Hora",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://feeds.bbci.co.uk/portuguese/rss.xml"
+      },
+      "id": "rss-feed-1",
+      "name": "Leitor RSS de Notícias",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Você é um jornalista sênior e editor-chefe de um renomado portal de notícias.\n\nCom base na notícia a seguir coletada da fonte:\nTÍTULO ORIGINAL: {{ $json.title }}\nLINK ORIGINAL: {{ $json.link }}\nDESCRIÇÃO/TEXTO: {{ $json.contentSnippet || $json.content || $json.description }}\n\nReescreva uma matéria jornalística completa e inédita em português do Brasil com tom informativo e analítico.\n\nRetorne EXCLUSIVAMENTE um objeto JSON válido (sem tags markdown ```json) com a seguinte estrutura estrita:\n{\n  \"titulo\": \"Título chamativo, profissional e otimizado para SEO (máximo 85 caracteres)\",\n  \"resumo\": \"Lead informativo e envolvente da notícia (entre 110 e 160 caracteres)\",\n  \"conteudo\": \"<p class=\\\"lead\\\">Parágrafo introdutório marcante...</p>\\n\\n<h2>Contexto e Principais Fatos</h2>\\n<p>Detalhamento aprofundado dos acontecimentos com dados e contexto...</p>\\n\\n<!-- AD_SLOT_1 -->\\n\\n<h2>Impactos e Próximos Passos</h2>\\n<p>Análise de repercussões para o setor e para a sociedade...</p>\\n\\n<blockquote>Declaração de especialista ou análise dos desdobramentos</blockquote>\\n\\n<p>Parágrafo conclusivo com perspectivas futuras.</p>\",\n  \"categoria\": \"Tecnologia ou Economia ou Mercados ou Ciência ou Cidades ou Segurança\",\n  \"autor\": \"Redação IA Especializada\",\n  \"imagem\": \"\"\n}"
+      },
+      "id": "ai-journalist-1",
+      "name": "IA Jornalista (Gemini / OpenAI)",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://seu-portal.vercel.app/api/v1/publish",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "seu_token_secreto_n8n_make"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json) }}"
+      },
+      "id": "publish-webhook-1",
+      "name": "Publicar no Portal de Notícias",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [920, 300]
+    }
+  ],
+  "connections": {
+    "Disparo a Cada 1 Hora": {
+      "main": [
+        [
+          {
+            "node": "Leitor RSS de Notícias",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leitor RSS de Notícias": {
+      "main": [
+        [
+          {
+            "node": "IA Jornalista (Gemini / OpenAI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA Jornalista (Gemini / OpenAI)": {
+      "main": [
+        [
+          {
+            "node": "Publicar no Portal de Notícias",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

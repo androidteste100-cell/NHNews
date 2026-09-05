@@ -1,0 +1,33 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout
+  title="Página Não Encontrada (404) — Portal de Notícias"
+  description="A página que você procura não foi encontrada ou foi movida."
+>
+  <div class="max-w-3xl mx-auto px-4 py-24 text-center">
+    <span class="text-7xl font-black text-sky-600 font-serif block mb-4">404</span>
+    <h1 class="text-3xl sm:text-4xl font-extrabold text-neutral-900 dark:text-white tracking-tight mb-4">
+      Página não encontrada
+    </h1>
+    <p class="text-base text-neutral-600 dark:text-neutral-400 mb-8 max-w-md mx-auto leading-relaxed">
+      A notícia ou página que você tentou acessar pode ter sido movida, atualizada ou o link digitado está incorreto.
+    </p>
+
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+      <a
+        href="/"
+        class="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white font-semibold text-sm px-6 py-3 rounded-lg shadow-sm transition-colors"
+      >
+        Voltar para a Página Inicial
+      </a>
+      <a
+        href="/categoria/Tecnologia"
+        class="w-full sm:w-auto bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-800 dark:text-neutral-200 font-semibold text-sm px-6 py-3 rounded-lg transition-colors"
+      >
+        Ver Últimas Notícias
+      </a>
+    </div>
+  </div>
+</Layout>

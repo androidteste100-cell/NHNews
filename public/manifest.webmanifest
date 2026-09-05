@@ -1,0 +1,17 @@
+{
+  "name": "Portal de Notícias",
+  "short_name": "PortalNotícias",
+  "description": "Portal de notícias em tempo real alimentado por automação e inteligência artificial",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0284c7",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,232 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import AdBanner from '../../components/AdBanner.astro';
+import NewsCard from '../../components/NewsCard.astro';
+import { getNoticiaBySlug, getRecentNoticias } from '../../lib/supabase';
+import { sanitizeArticleHtml } from '../../lib/sanitize';
+
+const { slug } = Astro.params;
+
+if (!slug) {
+  return Astro.redirect('/404');
+}
+
+// 1. Consulta otimizada com campos explícitos (sem select("*"))
+const noticia = await getNoticiaBySlug(slug);
+
+if (!noticia) {
+  return Astro.redirect('/404');
+}
+
+// 2. Sanitização rigorosa do HTML do banco de dados (Prevenção de XSS)
+const sanitizedContent = sanitizeArticleHtml(noticia.conteudo);
+
+// 3. Substituição segura dos slots de anúncio (<!-- AD_SLOT_1 -->, <!-- AD_SLOT_2 -->, <!-- AD_SLOT_FOOTER -->)
+// Alturas mínimas obrigatórias para mitigar CLS: min-h-[250px] para in-article e min-h-[90px] para footer
+const adSlot1Html = `
+  <aside class="ad-slot-wrapper my-8 flex flex-col items-center justify-center not-prose" aria-label="Espaço publicitário intermediário 1">
+    <div class="w-full flex flex-col items-center justify-center rounded-lg border border-dashed border-neutral-300 dark:border-neutral-700 bg-neutral-50/80 dark:bg-neutral-900/50 p-3 min-h-[250px] max-w-[728px] text-center">
+      <span class="text-[10px] uppercase font-semibold tracking-wider text-neutral-400 self-end mb-2 select-none">Publicidade</span>
+      <div class="flex flex-col items-center justify-center p-4 text-neutral-400">
+        <svg class="w-6 h-6 mb-1 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+        <span class="text-xs font-medium text-neutral-500">Publicidade Programática</span>
+        <span class="text-[11px] text-neutral-400 mt-0.5">Espaço in-article reservado • Sem CLS</span>
+      </div>
+    </div>
+  </aside>
+`;
+
+const adSlot2Html = `
+  <aside class="ad-slot-wrapper my-8 flex flex-col items-center justify-center not-prose" aria-label="Espaço publicitário intermediário 2">
+    <div class="w-full flex flex-col items-center justify-center rounded-lg border border-dashed border-neutral-300 dark:border-neutral-700 bg-neutral-50/80 dark:bg-neutral-900/50 p-3 min-h-[250px] max-w-[728px] text-center">
+      <span class="text-[10px] uppercase font-semibold tracking-wider text-neutral-400 self-end mb-2 select-none">Publicidade</span>
+      <div class="flex flex-col items-center justify-center p-4 text-neutral-400">
+        <svg class="w-6 h-6 mb-1 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+        <span class="text-xs font-medium text-neutral-500">Anúncio Afiliados / AdSense</span>
+        <span class="text-[11px] text-neutral-400 mt-0.5">Espaço in-article reservado • Sem CLS</span>
+      </div>
+    </div>
+  </aside>
+`;
+
+const adSlotFooterHtml = `
+  <aside class="ad-slot-wrapper my-8 flex flex-col items-center justify-center not-prose" aria-label="Espaço publicitário de fechamento">
+    <div class="w-full flex flex-col items-center justify-center rounded-lg border border-dashed border-neutral-300 dark:border-neutral-700 bg-neutral-50/80 dark:bg-neutral-900/50 p-3 min-h-[90px] max-w-[728px] text-center">
+      <span class="text-[10px] uppercase font-semibold tracking-wider text-neutral-400 self-end mb-1 select-none">Publicidade</span>
+      <span class="text-xs font-medium text-neutral-500">Espaço Reservado de Encerramento (Footer Article)</span>
+    </div>
+  </aside>
+`;
+
+// Substituição das marcações sem injetar anúncios no banco de dados
+const finalHtml = sanitizedContent
+  .replace(/(?:<!--\s*AD_SLOT_1\s*-->|<div data-ad-placeholder="1"><\/div>)/g, adSlot1Html)
+  .replace(/(?:<!--\s*AD_SLOT_2\s*-->|<div data-ad-placeholder="2"><\/div>)/g, adSlot2Html)
+  .replace(/(?:<!--\s*AD_SLOT_FOOTER\s*-->|<div data-ad-placeholder="footer"><\/div>)/g, adSlotFooterHtml);
+
+// 4. Busca de artigos relacionados para navegação e recirculação
+const todasRecentes = await getRecentNoticias(5);
+const recomendadas = todasRecentes.filter((n) => n.slug !== slug).slice(0, 3);
+
+// Formatação das datas para exibição e schema
+const publishedDate = new Date(noticia.created_at).toLocaleDateString('pt-BR', {
+  day: '2-digit',
+  month: 'long',
+  year: 'numeric',
+});
+const publishedTime = new Date(noticia.created_at).toLocaleTimeString('pt-BR', {
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
+const siteUrl = Astro.site?.origin || Astro.url.origin;
+const canonicalUrl = `${siteUrl}/noticia/${noticia.slug}`;
+
+const breadcrumbs = [
+  { name: 'Início', item: siteUrl },
+  { name: noticia.categoria, item: `${siteUrl}/categoria/${encodeURIComponent(noticia.categoria)}` },
+  { name: noticia.titulo, item: canonicalUrl },
+];
+---
+
+<Layout
+  title={noticia.titulo}
+  description={noticia.resumo}
+  image={noticia.imagem}
+  canonicalURL={canonicalUrl}
+  article={{
+    publishedTime: noticia.created_at,
+    author: noticia.autor,
+    section: noticia.categoria,
+  }}
+  breadcrumbs={breadcrumbs}
+>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Breadcrumb visual de navegação -->
+    <nav aria-label="Breadcrumb" class="mb-6 text-xs text-neutral-500 flex items-center gap-1.5 flex-wrap">
+      <a href="/" class="hover:text-sky-600 transition-colors">Início</a>
+      <span>/</span>
+      <a href={`/categoria/${noticia.categoria}`} class="hover:text-sky-600 transition-colors">
+        {noticia.categoria}
+      </a>
+      <span>/</span>
+      <span class="text-neutral-800 dark:text-neutral-200 truncate max-w-xs sm:max-w-md">
+        {noticia.titulo}
+      </span>
+    </nav>
+
+    <!-- Layout Grid com Artigo e Sidebar -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      
+      <!-- Corpo Principal do Artigo (8 colunas) -->
+      <article class="lg:col-span-8 bg-white dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 rounded-xl p-6 sm:p-8">
+        
+        <!-- Cabeçalho do Artigo -->
+        <header class="mb-8">
+          <div class="mb-3">
+            <a
+              href={`/categoria/${noticia.categoria}`}
+              class="inline-block bg-blue-600 text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded shadow-xs"
+            >
+              {noticia.categoria}
+            </a>
+          </div>
+
+          <h1 class="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight uppercase italic text-neutral-950 dark:text-white leading-[1.2] mb-4">
+            {noticia.titulo}
+          </h1>
+
+          <p class="text-base sm:text-lg text-gray-600 dark:text-neutral-300 leading-relaxed font-sans font-normal mb-6">
+            {noticia.resumo}
+          </p>
+
+          <!-- Metadados do Autor e Data -->
+          <div class="flex items-center justify-between py-3 border-y-2 border-black dark:border-neutral-700 text-xs text-gray-500">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center font-bold uppercase text-xs">
+                {noticia.autor.charAt(0)}
+              </div>
+              <div>
+                <span class="font-bold text-neutral-900 dark:text-white block uppercase text-[11px]">{noticia.autor}</span>
+                <span class="text-[10px] text-gray-400">REDAÇÃO ESPECIAL</span>
+              </div>
+            </div>
+            <div class="text-right">
+              <time datetime={noticia.created_at} class="block font-bold text-neutral-900 dark:text-neutral-300 text-[11px]">
+                {publishedDate}
+              </time>
+              <span class="text-[10px] text-gray-400">ATUALIZADO ÀS {publishedTime}</span>
+            </div>
+          </div>
+        </header>
+
+        <!-- Imagem Principal de Destaque com Aspect Ratio Fixo e LCP Otimizado -->
+        <figure class="mb-8 rounded-xl overflow-hidden border-2 border-black dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-900">
+          <img
+            src={noticia.imagem}
+            alt={noticia.titulo}
+            width="1200"
+            height="675"
+            loading="eager"
+            fetchpriority="high"
+            decoding="sync"
+            class="w-full aspect-[16/9] object-cover"
+          />
+          <figcaption class="text-[10px] font-mono text-gray-400 p-2 text-right uppercase bg-gray-50 dark:bg-neutral-800 border-t border-black dark:border-neutral-700">
+            FOTO: DIVULGAÇÃO / AGÊNCIA DE NOTÍCIAS
+          </figcaption>
+        </figure>
+
+        <!-- Conteúdo do Artigo Sanitizado com Anúncios Injetados -->
+        <div 
+          class="prose prose-neutral dark:prose-invert max-w-none text-base leading-relaxed text-neutral-800 dark:text-neutral-200 [&>p]:mb-6 [&>h2]:text-xl [&>h2]:font-black [&>h2]:uppercase [&>h2]:mt-8 [&>h2]:mb-3 [&>blockquote]:border-l-4 [&>blockquote]:border-blue-600 [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:text-gray-700 dark:[&>blockquote]:text-neutral-300"
+          set:html={finalHtml}
+        />
+
+        <!-- Compartilhamento e Tags de Fechamento -->
+        <div class="mt-12 pt-6 border-t-2 border-black dark:border-neutral-700 flex items-center justify-between">
+          <div class="text-xs text-gray-500 font-mono">
+            PORTAL DE NOTÍCIAS • VERCEL SSR EDGE
+          </div>
+          <a href="/" class="text-xs font-bold uppercase tracking-wider text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1">
+            <span>← Página Inicial</span>
+          </a>
+        </div>
+
+      </article>
+
+      <!-- Coluna Lateral (4 colunas) -->
+      <aside class="lg:col-span-4 space-y-6" aria-label="Publicidade e Notícias Relacionadas">
+        
+        <!-- Banner de Sidebar Bento (min-h-[600px] para CLS) -->
+        <div class="sticky top-6 space-y-6">
+          <div class="bg-white dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 rounded-xl p-4 flex flex-col items-center justify-center">
+            <AdBanner slotType="sidebar" customClass="!my-0" />
+          </div>
+
+          <!-- Bloco de Notícias Relacionadas Bento -->
+          {recomendadas.length > 0 && (
+            <div class="bg-white dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 rounded-xl p-5">
+              <div class="flex items-center justify-between pb-3 mb-3 border-b-2 border-black dark:border-neutral-700">
+                <h3 class="text-sm font-black text-neutral-900 dark:text-white uppercase italic tracking-tight">
+                  Leia Também
+                </h3>
+                <span class="text-[10px] font-bold text-blue-600 uppercase">
+                  Recomendadas
+                </span>
+              </div>
+              <div class="divide-y divide-gray-200 dark:divide-neutral-800">
+                {recomendadas.map((rec) => (
+                  <NewsCard noticia={rec} variant="compact" />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+      </aside>
+
+    </div>
+  </div>
+</Layout>

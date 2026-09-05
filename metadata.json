@@ -1,0 +1,6 @@
+{
+  "name": "Portal de Notícias",
+  "description": "Portal de notícias automatizado de alta performance com Astro SSR, Tailwind CSS e Supabase.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
