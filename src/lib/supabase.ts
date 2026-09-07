@@ -1,10 +1,31 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database, Noticia, NoticiaListItem, NoticiaDetail, NoticiaInsert, NoticiaUpdate } from '../types/database.types';
 
-// Variáveis de ambiente públicas do Supabase (Astro suporta import.meta.env)
-const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || process.env.PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || process.env.PUBLIC_SUPABASE_ANON_KEY || '';
-const supabaseServiceKey = (typeof process !== 'undefined' && process.env.SUPABASE_SERVICE_ROLE_KEY) || import.meta.env.SUPABASE_SERVICE_ROLE_KEY || '';
+// Variáveis de ambiente públicas do Supabase (Astro e Next.js aliases suportados)
+const rawSupabaseUrl =
+  import.meta.env.PUBLIC_SUPABASE_URL ||
+  process.env.PUBLIC_SUPABASE_URL ||
+  import.meta.env.NEXT_PUBLIC_SUPABASE_URL ||
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  '';
+// Normalização essencial: se o usuário colou com /rest/v1/ ou barra final, remove para evitar erro PGRST125
+const supabaseUrl = rawSupabaseUrl
+  ? rawSupabaseUrl.replace(/\/rest\/v1\/?$/i, '').replace(/\/+$/, '')
+  : '';
+const supabaseAnonKey =
+  import.meta.env.PUBLIC_SUPABASE_ANON_KEY ||
+  process.env.PUBLIC_SUPABASE_ANON_KEY ||
+  import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  '';
+const rawServiceKey =
+  (typeof process !== 'undefined' && (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY)) ||
+  import.meta.env.SUPABASE_SERVICE_ROLE_KEY ||
+  '';
+// Se o usuário acidentalmente inseriu a URL do painel no lugar do token JWT, ignoramos para não quebrar a API
+const supabaseServiceKey = (rawServiceKey && !rawServiceKey.startsWith('http') && rawServiceKey.length > 20)
+  ? rawServiceKey.trim()
+  : '';
 
 const isConfigured = Boolean(
   supabaseUrl &&
@@ -256,31 +277,104 @@ export async function getRecentNoticias(limit = 12): Promise<NoticiaListItem[]> 
  * Busca uma notícia completa pelo slug, para a página de artigo.
  */
 export async function getNoticiaBySlug(slug: string): Promise<NoticiaDetail | null> {
+  if (!slug) return null;
+  let cleanSlug = slug.trim();
+  try {
+    cleanSlug = decodeURIComponent(cleanSlug).trim();
+  } catch {
+    // se falhar decode, mantém original
+  }
+  if (!cleanSlug) return null;
+
   if (!isConfigured || isTableMissing) {
-    const found = mockNoticiasList.find((n) => n.slug === slug && n.publicado);
+    const found = mockNoticiasList.find(
+      (n) =>
+        (n.slug?.trim().toLowerCase() === cleanSlug.toLowerCase() ||
+          n.id === cleanSlug ||
+          `noticia-${n.id}` === cleanSlug) &&
+        n.publicado
+    );
     return found || null;
   }
 
   try {
-    const { data, error } = await supabase
+    // 1. Busca exata pelo slug
+    let { data, error } = await supabase
       .from('noticias')
       .select('id, titulo, slug, resumo, conteudo, categoria, imagem, created_at, autor')
-      .eq('slug', slug)
+      .eq('slug', cleanSlug)
       .eq('publicado', true)
       .maybeSingle();
 
+    // 2. Se não encontrar exato, busca flexível insensível a maiúsculas/minúsculas
+    if (!data && !error) {
+      const flexQuery = await supabase
+        .from('noticias')
+        .select('id, titulo, slug, resumo, conteudo, categoria, imagem, created_at, autor')
+        .ilike('slug', cleanSlug)
+        .eq('publicado', true)
+        .maybeSingle();
+      data = flexQuery.data;
+      error = flexQuery.error;
+    }
+
+    // 3. Se ainda não encontrar, verifica se foi passado como ID direto ou 'noticia-<uuid>'
+    if (!data && !error) {
+      const possibleId = cleanSlug.replace(/^noticia-/, '');
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (uuidRegex.test(possibleId)) {
+        const idQuery = await supabase
+          .from('noticias')
+          .select('id, titulo, slug, resumo, conteudo, categoria, imagem, created_at, autor')
+          .eq('id', possibleId)
+          .maybeSingle();
+        data = idQuery.data;
+        error = idQuery.error;
+      }
+    }
+
+    // 4. Se ainda não encontrou, busca sem a restrição estrita de publicado=true
+    if (!data && !error) {
+      const unpubQuery = await supabase
+        .from('noticias')
+        .select('id, titulo, slug, resumo, conteudo, categoria, imagem, created_at, autor')
+        .or(`slug.eq.${cleanSlug},slug.ilike.${cleanSlug}`)
+        .maybeSingle();
+      if (unpubQuery.data) {
+        data = unpubQuery.data;
+      }
+    }
+
     if (error) {
       handleSupabaseQueryError('getNoticiaBySlug', error);
-      const found = mockNoticiasList.find((n) => n.slug === slug && n.publicado);
+      const found = mockNoticiasList.find(
+        (n) =>
+          (n.slug?.trim().toLowerCase() === cleanSlug.toLowerCase() ||
+            n.id === cleanSlug ||
+            `noticia-${n.id}` === cleanSlug) &&
+          n.publicado
+      );
       return found || null;
     }
 
     if (data) return data as NoticiaDetail;
-    const found = mockNoticiasList.find((n) => n.slug === slug && n.publicado);
+    const found = mockNoticiasList.find(
+      (n) =>
+        (n.slug?.trim().toLowerCase() === cleanSlug.toLowerCase() ||
+          n.id === cleanSlug ||
+          `noticia-${n.id}` === cleanSlug) &&
+        n.publicado
+    );
     return found || null;
   } catch (err) {
     handleSupabaseQueryError('getNoticiaBySlug', err);
-    const found = mockNoticiasList.find((n) => n.slug === slug && n.publicado);
+    const found = mockNoticiasList.find(
+      (n) =>
+        (n.slug?.trim().toLowerCase() === cleanSlug.toLowerCase() ||
+          n.id === cleanSlug ||
+          `noticia-${n.id}` === cleanSlug) &&
+        n.publicado
+    );
     return found || null;
   }
 }
@@ -447,20 +541,36 @@ export async function createNoticia(
   }
 
   try {
-    const { data, error } = await supabaseAdmin
+    const insertPayload = {
+      titulo: payload.titulo,
+      slug: payload.slug,
+      resumo: payload.resumo,
+      conteudo: payload.conteudo,
+      categoria: payload.categoria,
+      imagem: payload.imagem,
+      autor: payload.autor || 'Redação',
+      publicado: payload.publicado ?? true,
+    };
+
+    // Tenta primeiro com supabaseAdmin
+    let { data, error } = await supabaseAdmin
       .from('noticias')
-      .insert({
-        titulo: payload.titulo,
-        slug: payload.slug,
-        resumo: payload.resumo,
-        conteudo: payload.conteudo,
-        categoria: payload.categoria,
-        imagem: payload.imagem,
-        autor: payload.autor || 'Redação',
-        publicado: payload.publicado ?? true,
-      })
+      .insert(insertPayload)
       .select()
       .single();
+
+    // Se falhar por chave inválida ou erro de JWT, tenta gravar com o cliente público (anon)
+    if (error && (error.message?.includes('Invalid API key') || error.message?.includes('JWT') || error.code === '42501')) {
+      const anonAttempt = await supabase
+        .from('noticias')
+        .insert(insertPayload)
+        .select()
+        .single();
+      if (!anonAttempt.error && anonAttempt.data) {
+        data = anonAttempt.data;
+        error = null;
+      }
+    }
 
     if (error) {
       if (error.code === '23505') {

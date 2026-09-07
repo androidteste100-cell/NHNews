@@ -19,7 +19,15 @@ if (!noticia) {
 }
 
 // 2. Sanitização rigorosa do HTML do banco de dados (Prevenção de XSS)
-const sanitizedContent = sanitizeArticleHtml(noticia.conteudo);
+const sanitizedContent = sanitizeArticleHtml(noticia.conteudo || '');
+
+// Campos com fallbacks seguros para evitar exceções em tempo de execução
+const safeTitulo = noticia.titulo?.trim() || 'Notícia em Atualização';
+const safeResumo = noticia.resumo?.trim() || '';
+const safeAutor = noticia.autor?.trim() || 'Redação';
+const safeCategoria = noticia.categoria?.trim() || 'Geral';
+const safeImagem = noticia.imagem?.trim() || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?q=80&w=1200&auto=format&fit=crop';
+const autorInitial = (safeAutor.charAt(0) || 'R').toUpperCase();
 
 // 3. Substituição segura dos slots de anúncio (<!-- AD_SLOT_1 -->, <!-- AD_SLOT_2 -->, <!-- AD_SLOT_FOOTER -->)
 // Alturas mínimas obrigatórias para mitigar CLS: min-h-[250px] para in-article e min-h-[90px] para footer
@@ -68,36 +76,39 @@ const finalHtml = sanitizedContent
 const todasRecentes = await getRecentNoticias(5);
 const recomendadas = todasRecentes.filter((n) => n.slug !== slug).slice(0, 3);
 
-// Formatação das datas para exibição e schema
-const publishedDate = new Date(noticia.created_at).toLocaleDateString('pt-BR', {
+// Formatação defensiva das datas para exibição e schema
+const rawDate = noticia.created_at ? new Date(noticia.created_at) : new Date();
+const validDate = isNaN(rawDate.getTime()) ? new Date() : rawDate;
+const publishedDate = validDate.toLocaleDateString('pt-BR', {
   day: '2-digit',
   month: 'long',
   year: 'numeric',
 });
-const publishedTime = new Date(noticia.created_at).toLocaleTimeString('pt-BR', {
+const publishedTime = validDate.toLocaleTimeString('pt-BR', {
   hour: '2-digit',
   minute: '2-digit',
 });
+const isoDate = validDate.toISOString();
 
 const siteUrl = Astro.site?.origin || Astro.url.origin;
-const canonicalUrl = `${siteUrl}/noticia/${noticia.slug}`;
+const canonicalUrl = `${siteUrl}/noticia/${noticia.slug || slug}`;
 
 const breadcrumbs = [
   { name: 'Início', item: siteUrl },
-  { name: noticia.categoria, item: `${siteUrl}/categoria/${encodeURIComponent(noticia.categoria)}` },
-  { name: noticia.titulo, item: canonicalUrl },
+  { name: safeCategoria, item: `${siteUrl}/categoria/${encodeURIComponent(safeCategoria)}` },
+  { name: safeTitulo, item: canonicalUrl },
 ];
 ---
 
 <Layout
-  title={noticia.titulo}
-  description={noticia.resumo}
-  image={noticia.imagem}
+  title={safeTitulo}
+  description={safeResumo}
+  image={safeImagem}
   canonicalURL={canonicalUrl}
   article={{
-    publishedTime: noticia.created_at,
-    author: noticia.autor,
-    section: noticia.categoria,
+    publishedTime: isoDate,
+    author: safeAutor,
+    section: safeCategoria,
   }}
   breadcrumbs={breadcrumbs}
 >
@@ -107,12 +118,12 @@ const breadcrumbs = [
     <nav aria-label="Breadcrumb" class="mb-6 text-xs text-neutral-500 flex items-center gap-1.5 flex-wrap">
       <a href="/" class="hover:text-sky-600 transition-colors">Início</a>
       <span>/</span>
-      <a href={`/categoria/${noticia.categoria}`} class="hover:text-sky-600 transition-colors">
-        {noticia.categoria}
+      <a href={`/categoria/${safeCategoria}`} class="hover:text-sky-600 transition-colors">
+        {safeCategoria}
       </a>
       <span>/</span>
       <span class="text-neutral-800 dark:text-neutral-200 truncate max-w-xs sm:max-w-md">
-        {noticia.titulo}
+        {safeTitulo}
       </span>
     </nav>
 
@@ -126,34 +137,36 @@ const breadcrumbs = [
         <header class="mb-8">
           <div class="mb-3">
             <a
-              href={`/categoria/${noticia.categoria}`}
+              href={`/categoria/${safeCategoria}`}
               class="inline-block bg-blue-600 text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded shadow-xs"
             >
-              {noticia.categoria}
+              {safeCategoria}
             </a>
           </div>
 
           <h1 class="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight uppercase italic text-neutral-950 dark:text-white leading-[1.2] mb-4">
-            {noticia.titulo}
+            {safeTitulo}
           </h1>
 
-          <p class="text-base sm:text-lg text-gray-600 dark:text-neutral-300 leading-relaxed font-sans font-normal mb-6">
-            {noticia.resumo}
-          </p>
+          {safeResumo && (
+            <p class="text-base sm:text-lg text-gray-600 dark:text-neutral-300 leading-relaxed font-sans font-normal mb-6">
+              {safeResumo}
+            </p>
+          )}
 
           <!-- Metadados do Autor e Data -->
           <div class="flex items-center justify-between py-3 border-y-2 border-black dark:border-neutral-700 text-xs text-gray-500">
             <div class="flex items-center gap-3">
               <div class="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center font-bold uppercase text-xs">
-                {noticia.autor.charAt(0)}
+                {autorInitial}
               </div>
               <div>
-                <span class="font-bold text-neutral-900 dark:text-white block uppercase text-[11px]">{noticia.autor}</span>
+                <span class="font-bold text-neutral-900 dark:text-white block uppercase text-[11px]">{safeAutor}</span>
                 <span class="text-[10px] text-gray-400">REDAÇÃO ESPECIAL</span>
               </div>
             </div>
             <div class="text-right">
-              <time datetime={noticia.created_at} class="block font-bold text-neutral-900 dark:text-neutral-300 text-[11px]">
+              <time datetime={isoDate} class="block font-bold text-neutral-900 dark:text-neutral-300 text-[11px]">
                 {publishedDate}
               </time>
               <span class="text-[10px] text-gray-400">ATUALIZADO ÀS {publishedTime}</span>
@@ -164,8 +177,8 @@ const breadcrumbs = [
         <!-- Imagem Principal de Destaque com Aspect Ratio Fixo e LCP Otimizado -->
         <figure class="mb-8 rounded-xl overflow-hidden border-2 border-black dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-900">
           <img
-            src={noticia.imagem}
-            alt={noticia.titulo}
+            src={safeImagem}
+            alt={safeTitulo}
             width="1200"
             height="675"
             loading="eager"

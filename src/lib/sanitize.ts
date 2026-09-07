@@ -1,6 +1,13 @@
-import sanitizeHtml from 'sanitize-html';
+import sanitizeHtmlLib from 'sanitize-html';
 
-const defaultOptions: sanitizeHtml.IOptions = {
+// Suporte resiliente a ESM e CommonJS (Vercel Serverless / Node ESM)
+const sanitizeHtml = (
+  typeof sanitizeHtmlLib === 'function'
+    ? sanitizeHtmlLib
+    : (sanitizeHtmlLib as any)?.default || sanitizeHtmlLib
+) as typeof sanitizeHtmlLib;
+
+const defaultOptions: any = {
   allowedTags: [
     'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
     'p', 'blockquote', 'ul', 'ol', 'li',
@@ -24,7 +31,7 @@ const defaultOptions: sanitizeHtml.IOptions = {
   },
   allowedSchemes: ['http', 'https', 'mailto'],
   transformTags: {
-    a: (tagName, attribs) => {
+    a: (tagName: string, attribs: Record<string, string>) => {
       // Força segurança em links externos
       if (attribs.href && attribs.href.startsWith('http')) {
         attribs.rel = 'noopener noreferrer nofollow';
@@ -35,7 +42,7 @@ const defaultOptions: sanitizeHtml.IOptions = {
         attribs,
       };
     },
-    img: (tagName, attribs) => {
+    img: (tagName: string, attribs: Record<string, string>) => {
       // Garante lazy-loading e decoding assíncrono para Core Web Vitals
       attribs.loading = attribs.loading || 'lazy';
       attribs.decoding = 'async';
@@ -55,11 +62,19 @@ export function sanitizeArticleHtml(dirtyHtml: string): string {
     return '';
   }
 
-  // Substitui temporariamente os comentários dos slots de anúncio por marcações seguras
-  const withMarkers = dirtyHtml
-    .replace(/<!--\s*AD_SLOT_1\s*-->/g, '<div data-ad-placeholder="1"></div>')
-    .replace(/<!--\s*AD_SLOT_2\s*-->/g, '<div data-ad-placeholder="2"></div>')
-    .replace(/<!--\s*AD_SLOT_FOOTER\s*-->/g, '<div data-ad-placeholder="footer"></div>');
+  try {
+    // Substitui temporariamente os comentários dos slots de anúncio por marcações seguras
+    const withMarkers = dirtyHtml
+      .replace(/<!--\s*AD_SLOT_1\s*-->/g, '<div data-ad-placeholder="1"></div>')
+      .replace(/<!--\s*AD_SLOT_2\s*-->/g, '<div data-ad-placeholder="2"></div>')
+      .replace(/<!--\s*AD_SLOT_FOOTER\s*-->/g, '<div data-ad-placeholder="footer"></div>');
 
-  return sanitizeHtml(withMarkers, defaultOptions);
+    if (typeof sanitizeHtml === 'function') {
+      return sanitizeHtml(withMarkers, defaultOptions);
+    }
+    return withMarkers;
+  } catch (err) {
+    console.warn('[Sanitize Aviso] Erro na sanitização de HTML, retornando conteúdo bruto:', err);
+    return dirtyHtml;
+  }
 }

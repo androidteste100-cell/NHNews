@@ -31,7 +31,7 @@ function generateSlug(text: string): string {
 /**
  * Validação segura de token para automações (n8n, Make, Zapier)
  */
-function isValidApiKey(request: Request): boolean {
+function isValidApiKey(request: Request, url?: URL): boolean {
   const customKey =
     (typeof process !== 'undefined' && process.env.WEBHOOK_API_KEY) ||
     import.meta.env.WEBHOOK_API_KEY;
@@ -49,13 +49,21 @@ function isValidApiKey(request: Request): boolean {
     .filter(Boolean)
     .map((k) => String(k).trim());
 
-  // Verifica header x-api-key
+  // 1. Verifica query parameter apiKey na URL (para maior flexibilidade no Make/n8n)
+  if (url) {
+    const queryKey = url.searchParams.get('apiKey') || url.searchParams.get('api_key') || url.searchParams.get('token');
+    if (queryKey && validKeys.includes(queryKey.trim())) {
+      return true;
+    }
+  }
+
+  // 2. Verifica header x-api-key
   const xApiKey = request.headers.get('x-api-key')?.trim();
   if (xApiKey && validKeys.includes(xApiKey)) {
     return true;
   }
 
-  // Verifica header Authorization: Bearer <token>
+  // 3. Verifica header Authorization: Bearer <token>
   const authHeader = request.headers.get('authorization')?.trim() || '';
   if (authHeader.startsWith('Bearer ')) {
     const bearerToken = authHeader.replace('Bearer ', '').trim();
@@ -107,7 +115,7 @@ export const GET: APIRoute = async () => {
  */
 export const POST: APIRoute = async ({ request, url }) => {
   // 1. Verificação de Segurança da API Key
-  if (!isValidApiKey(request)) {
+  if (!isValidApiKey(request, url)) {
     return new Response(
       JSON.stringify({
         error: 'Acesso não autorizado.',
@@ -121,45 +129,157 @@ export const POST: APIRoute = async ({ request, url }) => {
   }
 
   try {
-    const body = await request.json();
-    const { titulo, resumo, conteudo, categoria, autor, publicado } = body;
-    let { imagem, slug } = body;
+    let rawText = '';
+    let body: any = null;
 
-    // Validações básicas
-    if (!titulo || typeof titulo !== 'string' || !titulo.trim()) {
-      return new Response(JSON.stringify({ error: 'Campo "titulo" é obrigatório.' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    // Verificar se veio via query string na URL (ex: ?titulo=...&resumo=...)
+    const queryTitulo = url.searchParams.get('titulo') || url.searchParams.get('title');
+    const queryResumo = url.searchParams.get('resumo') || url.searchParams.get('summary');
+    const queryConteudo = url.searchParams.get('conteudo') || url.searchParams.get('content');
+
+    // 1. Leitura do body
+    const contentType = request.headers.get('content-type') || '';
+    if (contentType.includes('application/x-www-form-urlencoded') || contentType.includes('multipart/form-data')) {
+      try {
+        const formData = await request.formData();
+        body = {};
+        for (const [key, value] of formData.entries()) {
+          body[key] = typeof value === 'string' ? value : '';
+        }
+      } catch {
+        body = null;
+      }
     }
 
-    if (!resumo || typeof resumo !== 'string' || !resumo.trim()) {
-      return new Response(JSON.stringify({ error: 'Campo "resumo" é obrigatório.' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    if (!body) {
+      try {
+        rawText = await request.text();
+      } catch {
+        rawText = '';
+      }
+
+      if (rawText) {
+        let cleaned = rawText.trim();
+        if (cleaned.startsWith('```json')) {
+          cleaned = cleaned.replace(/^```json\s*/i, '').replace(/\s*```$/, '');
+        } else if (cleaned.startsWith('```')) {
+          cleaned = cleaned.replace(/^```\s*/i, '').replace(/\s*```$/, '');
+        }
+        cleaned = cleaned.trim();
+
+        try {
+          body = JSON.parse(cleaned);
+        } catch {
+          // Se falhou JSON.parse, tenta extrair JSON com regex
+          const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            try {
+              body = JSON.parse(jsonMatch[0]);
+            } catch {
+              body = null;
+            }
+          }
+          
+          // Se ainda for nulo, tenta decodificar como URLSearchParams
+          if (!body && cleaned.includes('=')) {
+            try {
+              const params = new URLSearchParams(cleaned);
+              const paramObj: Record<string, string> = {};
+              for (const [k, v] of params.entries()) {
+                paramObj[k] = v;
+              }
+              if (paramObj.titulo || paramObj.title) {
+                body = paramObj;
+              }
+            } catch {
+              // segue em frente
+            }
+          }
+
+          // Se for texto plano cru, usa o próprio texto como título e conteúdo!
+          if (!body && cleaned.length > 5) {
+            const lines = cleaned.split('\n').map(l => l.trim()).filter(Boolean);
+            body = {
+              titulo: lines[0] || 'Notícia de Última Hora',
+              resumo: lines[1] || lines[0] || 'Cobertura completa dos acontecimentos.',
+              conteudo: `<p>${lines.join('</p><p>')}</p>`,
+            };
+          }
+        }
+      }
     }
 
-    if (!conteudo || typeof conteudo !== 'string' || !conteudo.trim()) {
-      return new Response(JSON.stringify({ error: 'Campo "conteudo" é obrigatório.' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    if (!body || typeof body !== 'object') {
+      body = {};
     }
 
-    const catNorm = (categoria && typeof categoria === 'string' ? categoria.trim() : 'Geral');
+    // Se o payload veio encapsulado em array ou objeto aninhado comum de automações
+    if (Array.isArray(body) && body.length > 0) {
+      body = body[0];
+    }
+    if (body.data && typeof body.data === 'object') {
+      body = body.data;
+    } else if (body.result && typeof body.result === 'object') {
+      body = body.result;
+    }
+
+    // Suporte ultra-flexível para nomes de chaves
+    const rawTitulo = body.titulo || body.title || body.headline || body.name || body.item_title || body.noticia || queryTitulo || '';
+    const rawResumo = body.resumo || body.summary || body.description || body.lead || body.subtitulo || body.snippet || queryResumo || '';
+    const rawConteudo = body.conteudo || body.content || body.article || body.text || body.corpo || body.body || queryConteudo || '';
+    const rawCategoria = body.categoria || body.category || body.tag || url.searchParams.get('categoria') || 'Tecnologia';
+    const rawAutor = body.autor || body.author || 'Redação Automática';
+    let rawImagem = body.imagem || body.image || body.imageUrl || body.urlToImage || '';
+    let rawSlug = body.slug || '';
+    const publicado = body.publicado !== undefined ? body.publicado : (body.published !== undefined ? body.published : true);
+
+    let titulo = typeof rawTitulo === 'string' ? rawTitulo.trim() : '';
+    let resumo = typeof rawResumo === 'string' ? rawResumo.trim() : '';
+    let conteudo = typeof rawConteudo === 'string' ? rawConteudo.trim() : '';
+
+    // Se o título estiver vazio mas temos resumo ou conteúdo, extrai o título dele!
+    if (!titulo && resumo) {
+      titulo = resumo.length > 80 ? resumo.substring(0, 80) + '...' : resumo;
+    } else if (!titulo && conteudo) {
+      const stripped = conteudo.replace(/<[^>]*>/g, '').trim();
+      titulo = stripped.length > 80 ? stripped.substring(0, 80) + '...' : (stripped || 'Notícia em Destaque');
+    }
+
+    // Se o resumo estiver vazio mas temos título
+    if (!resumo && titulo) {
+      resumo = `Confira a cobertura completa sobre: ${titulo}`;
+    }
+
+    // Se o conteúdo estiver vazio mas temos resumo/título
+    if (!conteudo && (resumo || titulo)) {
+      conteudo = `<p class="lead">${resumo || titulo}</p><p>Mais informações e desdobramentos serão atualizados em breve por nossa redação.</p>`;
+    }
+
+    // Fallback de emergência caso tudo tenha chegado vazio
+    if (!titulo) {
+      titulo = `Atualização de Notícias - ${new Date().toLocaleDateString('pt-BR')}`;
+      resumo = 'Acompanhe as últimas informações e novidades em tempo real.';
+      conteudo = '<p>Matéria em atualização constante pela equipe de reportagem.</p>';
+    }
+
+    const catNorm = typeof rawCategoria === 'string' && rawCategoria.trim() ? rawCategoria.trim() : 'Geral';
     
     // Se não forneceu imagem, usa imagem jornalística padrão da categoria
-    if (!imagem || typeof imagem !== 'string' || !imagem.startsWith('http')) {
+    if (!rawImagem || typeof rawImagem !== 'string' || !rawImagem.startsWith('http')) {
       const catKey = catNorm.toLowerCase();
-      imagem = DEFAULT_IMAGES[catKey] || DEFAULT_IMAGES['geral'];
+      rawImagem = DEFAULT_IMAGES[catKey] || DEFAULT_IMAGES['geral'];
     }
 
-    // Geração do slug
-    if (!slug || typeof slug !== 'string' || !slug.trim()) {
+    // Geração segura de slug amigável (nunca vazio)
+    let slug = '';
+    if (rawSlug && typeof rawSlug === 'string' && rawSlug.trim()) {
+      slug = generateSlug(rawSlug);
+    }
+    if (!slug) {
       slug = generateSlug(titulo);
-    } else {
-      slug = generateSlug(slug);
+    }
+    if (!slug) {
+      slug = `noticia-${Date.now()}`;
     }
 
     // Inserção com proteção anti-duplicação de slug (evita o erro Postgres 23505)
@@ -169,8 +289,8 @@ export const POST: APIRoute = async ({ request, url }) => {
       resumo: resumo.trim(),
       conteudo: conteudo.trim(),
       categoria: catNorm,
-      imagem: imagem.trim(),
-      autor: (autor && typeof autor === 'string' ? autor.trim() : 'Redação Automática'),
+      imagem: rawImagem.trim(),
+      autor: typeof rawAutor === 'string' && rawAutor.trim() ? rawAutor.trim() : 'Redação Automática',
       publicado: publicado !== undefined ? Boolean(publicado) : true,
     };
 
