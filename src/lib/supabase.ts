@@ -22,10 +22,16 @@ const rawServiceKey =
   (typeof process !== 'undefined' && (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY)) ||
   import.meta.env.SUPABASE_SERVICE_ROLE_KEY ||
   '';
-// Se o usuário acidentalmente inseriu a URL do painel no lugar do token JWT, ignoramos para não quebrar a API
-const supabaseServiceKey = (rawServiceKey && !rawServiceKey.startsWith('http') && rawServiceKey.length > 20)
-  ? rawServiceKey.trim()
-  : '';
+
+// Validação estrita do token service role: se for URL do painel ou inválido, ignora com segurança
+function isValidServiceKey(key: string): boolean {
+  if (!key || typeof key !== 'string') return false;
+  const trimmed = key.trim();
+  if (trimmed.startsWith('http') || trimmed.includes('supabase.com') || trimmed.includes(' ')) return false;
+  return trimmed.startsWith('eyJ') || trimmed.startsWith('sb_secret_') || trimmed.length > 30;
+}
+
+const supabaseServiceKey = isValidServiceKey(rawServiceKey) ? rawServiceKey.trim() : '';
 
 const isConfigured = Boolean(
   supabaseUrl &&
@@ -40,7 +46,7 @@ export const supabase = createClient<Database>(
   isConfigured ? supabaseAnonKey : 'sb_publishable_placeholder_anon_key'
 );
 
-// Cliente com Service Role para o painel de admin (ignora restrições de RLS se configurado)
+// Cliente com Service Role para o painel de admin e SSR (ignora restrições de RLS se configurado)
 export const supabaseAdmin = createClient<Database>(
   isConfigured ? supabaseUrl : 'https://placeholder-url.supabase.co',
   supabaseServiceKey || (isConfigured ? supabaseAnonKey : 'sb_publishable_placeholder_anon_key'),
@@ -51,6 +57,23 @@ export const supabaseAdmin = createClient<Database>(
     },
   }
 );
+
+/**
+ * Retorna o melhor cliente para consultas de leitura no servidor SSR:
+ * Se a chave service_role estiver configurada e válida, usa supabaseAdmin para evitar bloqueios de RLS.
+ * Caso contrário, utiliza o cliente padrão anon.
+ */
+export function getReadClient() {
+  if (supabaseServiceKey) {
+    return supabaseAdmin;
+  }
+  return supabase;
+}
+
+function isApiKeyError(error: any): boolean {
+  const msg = error?.message || String(error || '');
+  return msg.includes('Invalid API key') || msg.includes('JWT') || msg.includes('apiKey');
+}
 
 
 // ==============================================================================
@@ -247,26 +270,49 @@ function handleSupabaseQueryError(context: string, error: any) {
  * Busca lista das notícias mais recentes com campos específicos.
  */
 export async function getRecentNoticias(limit = 12): Promise<NoticiaListItem[]> {
-  if (!isConfigured || isTableMissing) {
+  if (!isConfigured) {
     return mockNoticiasList.filter((n) => n.publicado).slice(0, limit);
   }
 
+  const primaryClient = getReadClient();
   try {
-    const { data, error } = await supabase
+    let { data, error } = await primaryClient
       .from('noticias')
-      .select('id, titulo, slug, resumo, categoria, imagem, created_at, autor')
-      .eq('publicado', true)
+      .select('id, titulo, slug, resumo, categoria, imagem, created_at, autor, publicado')
+      .or('publicado.eq.true,publicado.is.null')
       .order('created_at', { ascending: false })
       .limit(limit);
+
+    // Se falhou por erro de API key ou permissão, tenta com o outro cliente
+    if (error) {
+      const fallbackClient = primaryClient === supabaseAdmin ? supabase : (supabaseServiceKey ? supabaseAdmin : null);
+      if (fallbackClient) {
+        const retry = await fallbackClient
+          .from('noticias')
+          .select('id, titulo, slug, resumo, categoria, imagem, created_at, autor, publicado')
+          .or('publicado.eq.true,publicado.is.null')
+          .order('created_at', { ascending: false })
+          .limit(limit);
+        if (!retry.error) {
+          data = retry.data;
+          error = null;
+        }
+      }
+    }
 
     if (error) {
       handleSupabaseQueryError('getRecentNoticias', error);
       return mockNoticiasList.filter((n) => n.publicado).slice(0, limit);
     }
 
+    // Sucesso: reseta a flag de ausência de tabela
+    isTableMissing = false;
+
     const items = (data as NoticiaListItem[]) || [];
     if (items.length > 0) return items;
-    return mockNoticiasList.filter((n) => n.publicado).slice(0, limit);
+
+    // Se o banco existe e está conectado mas não há notícias publicadas cadastradas ainda
+    return [];
   } catch (err) {
     handleSupabaseQueryError('getRecentNoticias', err);
     return mockNoticiasList.filter((n) => n.publicado).slice(0, limit);
@@ -286,7 +332,7 @@ export async function getNoticiaBySlug(slug: string): Promise<NoticiaDetail | nu
   }
   if (!cleanSlug) return null;
 
-  if (!isConfigured || isTableMissing) {
+  if (!isConfigured) {
     const found = mockNoticiasList.find(
       (n) =>
         (n.slug?.trim().toLowerCase() === cleanSlug.toLowerCase() ||
@@ -297,22 +343,40 @@ export async function getNoticiaBySlug(slug: string): Promise<NoticiaDetail | nu
     return found || null;
   }
 
+  const primaryClient = getReadClient();
   try {
     // 1. Busca exata pelo slug
-    let { data, error } = await supabase
+    let { data, error } = await primaryClient
       .from('noticias')
-      .select('id, titulo, slug, resumo, conteudo, categoria, imagem, created_at, autor')
+      .select('id, titulo, slug, resumo, conteudo, categoria, imagem, created_at, autor, publicado')
       .eq('slug', cleanSlug)
-      .eq('publicado', true)
+      .or('publicado.eq.true,publicado.is.null')
       .maybeSingle();
+
+    // Fallback para cliente alternativo em caso de falha de credencial/permissão
+    if (error) {
+      const fallbackClient = primaryClient === supabaseAdmin ? supabase : (supabaseServiceKey ? supabaseAdmin : null);
+      if (fallbackClient) {
+        const retry = await fallbackClient
+          .from('noticias')
+          .select('id, titulo, slug, resumo, conteudo, categoria, imagem, created_at, autor, publicado')
+          .eq('slug', cleanSlug)
+          .or('publicado.eq.true,publicado.is.null')
+          .maybeSingle();
+        if (!retry.error) {
+          data = retry.data;
+          error = null;
+        }
+      }
+    }
 
     // 2. Se não encontrar exato, busca flexível insensível a maiúsculas/minúsculas
     if (!data && !error) {
-      const flexQuery = await supabase
+      const flexQuery = await primaryClient
         .from('noticias')
-        .select('id, titulo, slug, resumo, conteudo, categoria, imagem, created_at, autor')
+        .select('id, titulo, slug, resumo, conteudo, categoria, imagem, created_at, autor, publicado')
         .ilike('slug', cleanSlug)
-        .eq('publicado', true)
+        .or('publicado.eq.true,publicado.is.null')
         .maybeSingle();
       data = flexQuery.data;
       error = flexQuery.error;
@@ -323,9 +387,9 @@ export async function getNoticiaBySlug(slug: string): Promise<NoticiaDetail | nu
       const possibleId = cleanSlug.replace(/^noticia-/, '');
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (uuidRegex.test(possibleId)) {
-        const idQuery = await supabase
+        const idQuery = await primaryClient
           .from('noticias')
-          .select('id, titulo, slug, resumo, conteudo, categoria, imagem, created_at, autor')
+          .select('id, titulo, slug, resumo, conteudo, categoria, imagem, created_at, autor, publicado')
           .eq('id', possibleId)
           .maybeSingle();
         data = idQuery.data;
@@ -333,11 +397,11 @@ export async function getNoticiaBySlug(slug: string): Promise<NoticiaDetail | nu
       }
     }
 
-    // 4. Se ainda não encontrou, busca sem a restrição estrita de publicado=true
+    // 4. Se ainda não encontrou, busca sem a restrição de publicado
     if (!data && !error) {
-      const unpubQuery = await supabase
+      const unpubQuery = await primaryClient
         .from('noticias')
-        .select('id, titulo, slug, resumo, conteudo, categoria, imagem, created_at, autor')
+        .select('id, titulo, slug, resumo, conteudo, categoria, imagem, created_at, autor, publicado')
         .or(`slug.eq.${cleanSlug},slug.ilike.${cleanSlug}`)
         .maybeSingle();
       if (unpubQuery.data) {
@@ -357,7 +421,11 @@ export async function getNoticiaBySlug(slug: string): Promise<NoticiaDetail | nu
       return found || null;
     }
 
-    if (data) return data as NoticiaDetail;
+    if (data) {
+      isTableMissing = false;
+      return data as NoticiaDetail;
+    }
+
     const found = mockNoticiasList.find(
       (n) =>
         (n.slug?.trim().toLowerCase() === cleanSlug.toLowerCase() ||
@@ -383,20 +451,38 @@ export async function getNoticiaBySlug(slug: string): Promise<NoticiaDetail | nu
  * Busca notícias por categoria.
  */
 export async function getNoticiasByCategory(categoria: string, limit = 12): Promise<NoticiaListItem[]> {
-  if (!isConfigured || isTableMissing) {
+  if (!isConfigured) {
     return mockNoticiasList
       .filter((n) => n.categoria.toLowerCase() === categoria.toLowerCase() && n.publicado)
       .slice(0, limit);
   }
 
+  const primaryClient = getReadClient();
   try {
-    const { data, error } = await supabase
+    let { data, error } = await primaryClient
       .from('noticias')
-      .select('id, titulo, slug, resumo, categoria, imagem, created_at, autor')
+      .select('id, titulo, slug, resumo, categoria, imagem, created_at, autor, publicado')
       .ilike('categoria', categoria)
-      .eq('publicado', true)
+      .or('publicado.eq.true,publicado.is.null')
       .order('created_at', { ascending: false })
       .limit(limit);
+
+    if (error) {
+      const fallbackClient = primaryClient === supabaseAdmin ? supabase : (supabaseServiceKey ? supabaseAdmin : null);
+      if (fallbackClient) {
+        const retry = await fallbackClient
+          .from('noticias')
+          .select('id, titulo, slug, resumo, categoria, imagem, created_at, autor, publicado')
+          .ilike('categoria', categoria)
+          .or('publicado.eq.true,publicado.is.null')
+          .order('created_at', { ascending: false })
+          .limit(limit);
+        if (!retry.error) {
+          data = retry.data;
+          error = null;
+        }
+      }
+    }
 
     if (error) {
       handleSupabaseQueryError('getNoticiasByCategory', error);
@@ -405,11 +491,11 @@ export async function getNoticiasByCategory(categoria: string, limit = 12): Prom
         .slice(0, limit);
     }
 
+    isTableMissing = false;
     const items = (data as NoticiaListItem[]) || [];
     if (items.length > 0) return items;
-    return mockNoticiasList
-      .filter((n) => n.categoria.toLowerCase() === categoria.toLowerCase() && n.publicado)
-      .slice(0, limit);
+
+    return [];
   } catch (err) {
     handleSupabaseQueryError('getNoticiasByCategory', err);
     return mockNoticiasList
@@ -422,22 +508,39 @@ export async function getNoticiasByCategory(categoria: string, limit = 12): Prom
  * Lista todas as slugs para geração de sitemap e feeds.
  */
 export async function getAllSlugs(): Promise<{ slug: string; updated_at: string }[]> {
-  if (!isConfigured || isTableMissing) {
+  if (!isConfigured) {
     return MOCK_NOTICIAS.map((n) => ({ slug: n.slug, updated_at: n.updated_at }));
   }
 
+  const primaryClient = getReadClient();
   try {
-    const { data, error } = await supabase
+    let { data, error } = await primaryClient
       .from('noticias')
-      .select('slug, updated_at')
-      .eq('publicado', true)
+      .select('slug, updated_at, publicado')
+      .or('publicado.eq.true,publicado.is.null')
       .order('created_at', { ascending: false });
+
+    if (error) {
+      const fallbackClient = primaryClient === supabaseAdmin ? supabase : (supabaseServiceKey ? supabaseAdmin : null);
+      if (fallbackClient) {
+        const retry = await fallbackClient
+          .from('noticias')
+          .select('slug, updated_at, publicado')
+          .or('publicado.eq.true,publicado.is.null')
+          .order('created_at', { ascending: false });
+        if (!retry.error) {
+          data = retry.data;
+          error = null;
+        }
+      }
+    }
 
     if (error) {
       handleSupabaseQueryError('getAllSlugs', error);
       return MOCK_NOTICIAS.map((n) => ({ slug: n.slug, updated_at: n.updated_at }));
     }
 
+    isTableMissing = false;
     return (data as { slug: string; updated_at: string }[]) || [];
   } catch (err) {
     handleSupabaseQueryError('getAllSlugs', err);
@@ -465,23 +568,39 @@ export function isSupabaseTableMissing(): boolean {
  * Busca todas as notícias (publicadas e rascunhos) para o painel administrativo.
  */
 export async function getAllNoticiasAdmin(): Promise<Noticia[]> {
-  if (!isConfigured || isTableMissing) {
+  if (!isConfigured) {
     return [...mockNoticiasList].sort(
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
   }
 
+  const primaryClient = getReadClient();
   try {
-    const { data, error } = await supabaseAdmin
+    let { data, error } = await primaryClient
       .from('noticias')
       .select('*')
       .order('created_at', { ascending: false });
+
+    if (error) {
+      const fallbackClient = primaryClient === supabaseAdmin ? supabase : (supabaseServiceKey ? supabaseAdmin : null);
+      if (fallbackClient) {
+        const retry = await fallbackClient
+          .from('noticias')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (!retry.error) {
+          data = retry.data;
+          error = null;
+        }
+      }
+    }
 
     if (error) {
       handleSupabaseQueryError('getAllNoticiasAdmin', error);
       return [...mockNoticiasList];
     }
 
+    isTableMissing = false;
     return (data as Noticia[]) || [];
   } catch (err) {
     handleSupabaseQueryError('getAllNoticiasAdmin', err);
@@ -493,22 +612,39 @@ export async function getAllNoticiasAdmin(): Promise<Noticia[]> {
  * Busca uma notícia pelo ID para edição no painel administrativo.
  */
 export async function getNoticiaByIdAdmin(id: string): Promise<Noticia | null> {
-  if (!isConfigured || isTableMissing) {
+  if (!isConfigured) {
     return mockNoticiasList.find((n) => n.id === id) || null;
   }
 
+  const primaryClient = getReadClient();
   try {
-    const { data, error } = await supabaseAdmin
+    let { data, error } = await primaryClient
       .from('noticias')
       .select('*')
       .eq('id', id)
       .maybeSingle();
 
     if (error) {
+      const fallbackClient = primaryClient === supabaseAdmin ? supabase : (supabaseServiceKey ? supabaseAdmin : null);
+      if (fallbackClient) {
+        const retry = await fallbackClient
+          .from('noticias')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle();
+        if (!retry.error) {
+          data = retry.data;
+          error = null;
+        }
+      }
+    }
+
+    if (error) {
       handleSupabaseQueryError('getNoticiaByIdAdmin', error);
       return mockNoticiasList.find((n) => n.id === id) || null;
     }
 
+    isTableMissing = false;
     return (data as Noticia) || null;
   } catch (err) {
     handleSupabaseQueryError('getNoticiaByIdAdmin', err);
@@ -522,7 +658,7 @@ export async function getNoticiaByIdAdmin(id: string): Promise<Noticia | null> {
 export async function createNoticia(
   payload: NoticiaInsert
 ): Promise<{ data: Noticia | null; error: string | null }> {
-  if (!isConfigured || isTableMissing) {
+  if (!isConfigured) {
     const newNoticia: Noticia = {
       id: crypto.randomUUID(),
       titulo: payload.titulo,
@@ -552,15 +688,16 @@ export async function createNoticia(
       publicado: payload.publicado ?? true,
     };
 
-    // Tenta primeiro com supabaseAdmin
-    let { data, error } = await supabaseAdmin
+    // Tenta primeiro com supabaseAdmin (ou getReadClient)
+    const primaryClient = supabaseServiceKey ? supabaseAdmin : supabase;
+    let { data, error } = await primaryClient
       .from('noticias')
       .insert(insertPayload)
       .select()
       .single();
 
-    // Se falhar por chave inválida ou erro de JWT, tenta gravar com o cliente público (anon)
-    if (error && (error.message?.includes('Invalid API key') || error.message?.includes('JWT') || error.code === '42501')) {
+    // Se falhar no admin por chave ou RLS, tenta com o cliente anon
+    if (error && primaryClient !== supabase) {
       const anonAttempt = await supabase
         .from('noticias')
         .insert(insertPayload)
@@ -582,30 +719,13 @@ export async function createNoticia(
       if (error.code === '42501' || error.message?.includes('row-level security')) {
         return {
           data: null,
-          error: 'Permissão de gravação negada por RLS no Supabase. Execute o comando de permissão no SQL Editor do Supabase ou configure SUPABASE_SERVICE_ROLE_KEY.',
+          error: 'Permissão de gravação negada por RLS no Supabase. Execute o script supabase/schema.sql ou desabilite RLS para permitir inserções.',
         };
-      }
-      if (error.message?.includes('Invalid API key') || error.message?.includes('JWT')) {
-        console.warn('Chave do Supabase inválida, utilizando armazenamento resiliente em memória:', error.message);
-        const fallbackNoticia: Noticia = {
-          id: crypto.randomUUID(),
-          titulo: payload.titulo,
-          slug: payload.slug,
-          resumo: payload.resumo,
-          conteudo: payload.conteudo,
-          categoria: payload.categoria,
-          imagem: payload.imagem,
-          autor: payload.autor || 'Redação',
-          publicado: payload.publicado ?? true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        mockNoticiasList.unshift(fallbackNoticia);
-        return { data: fallbackNoticia, error: null };
       }
       return { data: null, error: error.message };
     }
 
+    isTableMissing = false;
     return { data: data as Noticia, error: null };
   } catch (err: any) {
     return { data: null, error: err?.message || 'Erro inesperado ao criar notícia.' };
@@ -619,7 +739,7 @@ export async function updateNoticia(
   id: string,
   payload: NoticiaUpdate
 ): Promise<{ data: Noticia | null; error: string | null }> {
-  if (!isConfigured || isTableMissing) {
+  if (!isConfigured) {
     const index = mockNoticiasList.findIndex((n) => n.id === id);
     if (index === -1) return { data: null, error: 'Notícia não encontrada.' };
     
@@ -632,7 +752,8 @@ export async function updateNoticia(
   }
 
   try {
-    const { data, error } = await supabaseAdmin
+    const primaryClient = supabaseServiceKey ? supabaseAdmin : supabase;
+    let { data, error } = await primaryClient
       .from('noticias')
       .update({
         ...payload,
@@ -642,6 +763,22 @@ export async function updateNoticia(
       .select()
       .single();
 
+    if (error && primaryClient !== supabase) {
+      const anonAttempt = await supabase
+        .from('noticias')
+        .update({
+          ...payload,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      if (!anonAttempt.error && anonAttempt.data) {
+        data = anonAttempt.data;
+        error = null;
+      }
+    }
+
     if (error) {
       if (error.code === '23505') {
         return {
@@ -649,16 +786,10 @@ export async function updateNoticia(
           error: 'Já existe outra notícia cadastrada com este slug (URL amigável).',
         };
       }
-      if (error.message?.includes('Invalid API key') || error.message?.includes('JWT')) {
-        const item = mockNoticiasList.find((n) => n.id === id);
-        if (item) {
-          Object.assign(item, payload, { updated_at: new Date().toISOString() });
-          return { data: item, error: null };
-        }
-      }
       return { data: null, error: error.message };
     }
 
+    isTableMissing = false;
     return { data: data as Noticia, error: null };
   } catch (err: any) {
     return { data: null, error: err?.message || 'Erro inesperado ao atualizar notícia.' };
@@ -671,25 +802,33 @@ export async function updateNoticia(
 export async function deleteNoticia(
   id: string
 ): Promise<{ success: boolean; error: string | null }> {
-  if (!isConfigured || isTableMissing) {
+  if (!isConfigured) {
     mockNoticiasList = mockNoticiasList.filter((n) => n.id !== id);
     return { success: true, error: null };
   }
 
   try {
-    const { error } = await supabaseAdmin
+    const primaryClient = supabaseServiceKey ? supabaseAdmin : supabase;
+    let { error } = await primaryClient
       .from('noticias')
       .delete()
       .eq('id', id);
 
-    if (error) {
-      if (error.message?.includes('Invalid API key') || error.message?.includes('JWT')) {
-        mockNoticiasList = mockNoticiasList.filter((n) => n.id !== id);
-        return { success: true, error: null };
+    if (error && primaryClient !== supabase) {
+      const anonAttempt = await supabase
+        .from('noticias')
+        .delete()
+        .eq('id', id);
+      if (!anonAttempt.error) {
+        error = null;
       }
+    }
+
+    if (error) {
       return { success: false, error: error.message };
     }
 
+    isTableMissing = false;
     return { success: true, error: null };
   } catch (err: any) {
     return { success: false, error: err?.message || 'Erro ao excluir notícia.' };
@@ -703,27 +842,34 @@ export async function toggleNoticiaStatus(
   id: string,
   publicado: boolean
 ): Promise<{ success: boolean; error: string | null }> {
-  if (!isConfigured || isTableMissing) {
+  if (!isConfigured) {
     const item = mockNoticiasList.find((n) => n.id === id);
     if (item) item.publicado = publicado;
     return { success: true, error: null };
   }
 
   try {
-    const { error } = await supabaseAdmin
+    const primaryClient = supabaseServiceKey ? supabaseAdmin : supabase;
+    let { error } = await primaryClient
       .from('noticias')
       .update({ publicado, updated_at: new Date().toISOString() })
       .eq('id', id);
 
-    if (error) {
-      if (error.message?.includes('Invalid API key') || error.message?.includes('JWT')) {
-        const item = mockNoticiasList.find((n) => n.id === id);
-        if (item) item.publicado = publicado;
-        return { success: true, error: null };
+    if (error && primaryClient !== supabase) {
+      const anonAttempt = await supabase
+        .from('noticias')
+        .update({ publicado, updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (!anonAttempt.error) {
+        error = null;
       }
+    }
+
+    if (error) {
       return { success: false, error: error.message };
     }
 
+    isTableMissing = false;
     return { success: true, error: null };
   } catch (err: any) {
     return { success: false, error: err?.message || 'Erro ao alterar status.' };

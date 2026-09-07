@@ -1,10 +1,15 @@
 ---
+export const prerender = false;
+
+// Garante renderização sob demanda (SSR) no Vercel Edge sem cache obsoleto
+Astro.response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+
 import Layout from '../layouts/Layout.astro';
 import NewsCard from '../components/NewsCard.astro';
 import AdBanner from '../components/AdBanner.astro';
 import { getRecentNoticias, isSupabaseConnected, isSupabaseTableMissing } from '../lib/supabase';
 
-// Execução SSR: busca das notícias mais recentes
+// Execução SSR: busca das notícias mais recentes diretamente do banco
 const noticias = await getRecentNoticias(12);
 
 // Divisão estrutural para a composição Bento Grid

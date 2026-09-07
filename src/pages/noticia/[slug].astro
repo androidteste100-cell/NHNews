@@ -1,4 +1,9 @@
 ---
+export const prerender = false;
+
+// Garante renderização sob demanda (SSR) no Vercel Edge sem cache obsoleto
+Astro.response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+
 import Layout from '../../layouts/Layout.astro';
 import AdBanner from '../../components/AdBanner.astro';
 import NewsCard from '../../components/NewsCard.astro';
