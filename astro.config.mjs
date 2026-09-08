@@ -11,6 +11,9 @@ export default defineConfig({
   site: siteUrl,
   output: "server",
   adapter: vercel(),
+  build: {
+    inlineStylesheets: "always",
+  },
   server: {
     port: 3000,
     host: "0.0.0.0",
