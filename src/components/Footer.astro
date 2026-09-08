@@ -13,42 +13,104 @@ const categories = [
 ];
 ---
 
-<footer class="w-full bg-white dark:bg-black text-slate-900 dark:text-neutral-100 border-t-2 border-black mt-16 pt-10 pb-8">
+<footer id="menu-inferior" class="w-full bg-[#111827] text-neutral-200 border-t-4 border-[#dd3333] mt-16 pt-10 pb-16 sm:pb-8 shadow-md">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     
-    {/* Banner de Rodapé Bento (min-h-[90px] para CLS) */}
+    {/* =========================================================================
+        MENU INFERIOR EM DESTAQUE: HUB DE NAVEGAÇÃO RÁPIDA & EDITORIAS
+    ========================================================================= */}
+    <div class="mb-10 bg-neutral-900/90 border-2 border-neutral-800 rounded-3xl p-5 sm:p-7 shadow-xs">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 mb-5 border-b border-neutral-800">
+        <div>
+          <span class="inline-block bg-[#dd3333] text-white text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full mb-1.5 shadow-2xs">
+            MENU INFERIOR PRINCIPAL
+          </span>
+          <h2 class="text-base sm:text-lg font-black uppercase italic text-white flex items-center gap-2">
+            <span>Navegação Rápida por Editorias</span>
+          </h2>
+        </div>
+        
+        <button 
+          onclick="window.scrollTo({top: 0, behavior: 'smooth'})"
+          class="self-start md:self-auto inline-flex items-center gap-2 px-4 py-2 rounded-full border-2 border-neutral-700 hover:border-[#dd3333] bg-neutral-800 hover:bg-[#dd3333] text-white text-xs font-bold uppercase transition-all shadow-xs cursor-pointer"
+          title="Rolar de volta ao topo da página"
+        >
+          <span>↑ Voltar ao Topo</span>
+        </button>
+      </div>
+
+      {/* Grade de Pills do Menu Inferior com Alto Destaque */}
+      <div class="flex flex-wrap items-center gap-2.5">
+        <a 
+          href="/" 
+          class="px-4 py-2 rounded-full bg-[#dd3333] text-white font-black text-xs uppercase tracking-wider shadow-xs transition-colors flex items-center gap-1.5 hover:bg-red-700"
+        >
+          <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+          <span>Início</span>
+        </a>
+
+        {categories.map((cat) => (
+          <a 
+            href={`/categoria/${cat}`} 
+            class="px-4 py-2 rounded-full bg-neutral-800 hover:bg-[#dd3333] text-neutral-200 hover:text-white border border-neutral-700 hover:border-[#dd3333] font-bold text-xs uppercase tracking-wider shadow-2xs transition-all hover:scale-102"
+          >
+            {cat}
+          </a>
+        ))}
+
+        <a 
+          href="/admin" 
+          class="px-4 py-2 rounded-full bg-neutral-800 text-neutral-200 border-2 border-neutral-700 hover:border-[#dd3333] hover:text-white font-mono font-bold text-xs uppercase tracking-wider shadow-xs transition-colors flex items-center gap-1.5 ml-auto"
+        >
+          <span class="w-2 h-2 rounded-full bg-[#dd3333]"></span>
+          <span>Painel Admin</span>
+        </a>
+
+        <a 
+          href="/api/download" 
+          download="portal-noticias.zip"
+          class="px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider shadow-xs transition-colors flex items-center gap-1.5"
+        >
+          <span>📦 Baixar ZIP</span>
+        </a>
+      </div>
+    </div>
+
+    {/* Banner de Rodapé (min-h-[90px] para CLS) */}
     <div class="mb-10 flex justify-center">
-      <div class="w-full max-w-[728px] bg-gray-50 dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 rounded-xl p-2">
+      <div class="w-full max-w-[728px] bg-neutral-900 border border-neutral-800 rounded-2xl p-2 shadow-xs">
         <AdBanner slotType="footer" customClass="!my-0" />
       </div>
     </div>
 
     {/* Grid de Informações Bento */}
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-8 pb-10 border-b-2 border-black dark:border-neutral-800">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-8 pb-10 border-b border-neutral-800">
       <div class="md:col-span-2">
         <div class="flex items-center gap-2 mb-3">
-          <div class="text-2xl font-black tracking-tighter uppercase italic text-black dark:text-white">
-            PORTAL<span class="text-blue-600">NOTÍCIAS</span>
+          <div class="text-2xl font-black tracking-tighter uppercase italic text-white">
+            PORTAL<span class="text-[#dd3333]">NOTÍCIAS</span>
           </div>
         </div>
-        <p class="text-sm text-gray-600 dark:text-neutral-400 max-w-md leading-relaxed">
+        <p class="text-sm text-neutral-400 max-w-md leading-relaxed">
           Portal de notícias automatizado de última geração com Astro SSR, Supabase e Vercel. 
           Cobertura em tempo real com integridade de dados, otimização para Core Web Vitals e conformidade total com Google News.
         </p>
-        <div class="mt-4 font-mono text-[10px] text-gray-400 uppercase">
+        <div class="mt-4 font-mono text-[10px] text-neutral-500 uppercase">
           PUBLICAÇÃO CONTÍNUA VIA SUPABASE & VERCEL SSR EDGE
         </div>
       </div>
 
       <div>
-        <h3 class="text-xs font-black text-black dark:text-white uppercase tracking-widest mb-4">
-          Categorias
+        <h3 class="text-xs font-bold text-white uppercase tracking-widest mb-4 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-[#dd3333]"></span>
+          <span>Categorias</span>
         </h3>
-        <ul class="space-y-2 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-neutral-400">
+        <ul class="space-y-2 text-xs font-bold uppercase tracking-wider text-neutral-300">
           {categories.map((cat) => (
             <li>
-              <a href={`/categoria/${cat}`} class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                {cat}
+              <a href={`/categoria/${cat}`} class="hover:text-[#dd3333] transition-colors flex items-center gap-1">
+                <span class="text-neutral-500">›</span>
+                <span>{cat}</span>
               </a>
             </li>
           ))}
@@ -56,28 +118,34 @@ const categories = [
       </div>
 
       <div>
-        <h3 class="text-xs font-black text-black dark:text-white uppercase tracking-widest mb-4">
-          Transparência & Dados
+        <h3 class="text-xs font-bold text-white uppercase tracking-widest mb-4 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+          <span>Transparência & Dados</span>
         </h3>
-        <ul class="space-y-2 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-neutral-400">
+        <ul class="space-y-2 text-xs font-bold uppercase tracking-wider text-neutral-300">
           <li>
-            <a href="/rss.xml" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1.5" target="_blank" rel="noopener noreferrer">
+            <a href="/rss.xml" class="hover:text-[#dd3333] transition-colors flex items-center gap-1.5" target="_blank" rel="noopener noreferrer">
               <span>Feed RSS (Google News)</span>
             </a>
           </li>
           <li>
-            <a href="/sitemap.xml" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors" target="_blank" rel="noopener noreferrer">
+            <a href="/sitemap.xml" class="hover:text-[#dd3333] transition-colors" target="_blank" rel="noopener noreferrer">
               Mapa do Site (XML)
             </a>
           </li>
           <li>
-            <a href="/robots.txt" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors" target="_blank" rel="noopener noreferrer">
+            <a href="/robots.txt" class="hover:text-[#dd3333] transition-colors" target="_blank" rel="noopener noreferrer">
               Diretrizes de Rastreio (robots.txt)
             </a>
           </li>
           <li>
-            <a href="https://supabase.com" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors" target="_blank" rel="noopener noreferrer">
+            <a href="https://supabase.com" class="hover:text-[#dd3333] transition-colors" target="_blank" rel="noopener noreferrer">
               Infraestrutura Supabase
+            </a>
+          </li>
+          <li>
+            <a href="/api/download" download="portal-noticias.zip" class="hover:text-emerald-400 transition-colors flex items-center gap-1.5 font-bold" title="Baixar código-fonte completo em arquivo ZIP">
+              <span>📦 Baixar Projeto (.ZIP)</span>
             </a>
           </li>
         </ul>
@@ -85,13 +153,43 @@ const categories = [
     </div>
 
     {/* Linha Final de Copyright */}
-    <div class="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500 font-medium">
+    <div class="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-400 font-medium">
       <p>© {currentYear} Portal de Notícias. Todos os direitos reservados.</p>
       <div class="flex items-center gap-3 font-mono text-[11px] uppercase">
-        <span class="bg-gray-100 dark:bg-neutral-800 px-2 py-0.5 rounded border border-gray-300 dark:border-neutral-700">ASTRO SSR</span>
-        <span class="bg-gray-100 dark:bg-neutral-800 px-2 py-0.5 rounded border border-gray-300 dark:border-neutral-700">TAILWIND</span>
-        <span class="bg-gray-100 dark:bg-neutral-800 px-2 py-0.5 rounded border border-gray-300 dark:border-neutral-700">SUPABASE</span>
+        <span class="bg-neutral-800 text-neutral-300 px-3 py-1 rounded-full border border-neutral-700">ASTRO SSR</span>
+        <span class="bg-neutral-800 text-neutral-300 px-3 py-1 rounded-full border border-neutral-700">TAILWIND</span>
+        <span class="bg-neutral-800 text-neutral-300 px-3 py-1 rounded-full border border-neutral-700">SUPABASE</span>
       </div>
     </div>
   </div>
+
+  {/* =========================================================================
+      BARRA FLUTUANTE INFERIOR MOBILE EM DESTAQUE (FIXED DOCK)
+  ========================================================================= */}
+  <aside 
+    class="md:hidden fixed bottom-3 left-3 right-3 z-50 bg-[#111827]/95 backdrop-blur-md border-2 border-neutral-700 rounded-full shadow-2xl px-3 py-2 flex items-center justify-around text-[10px] font-bold uppercase tracking-wider text-neutral-200"
+    aria-label="Barra de Navegação Rápida Inferior Mobile"
+  >
+    <a href="/" class="flex flex-col items-center gap-0.5 hover:text-[#dd3333] transition-colors">
+      <svg class="w-4 h-4 shrink-0" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      <span>Início</span>
+    </a>
+    <a href="#menu-inferior" class="flex flex-col items-center gap-0.5 hover:text-[#dd3333] transition-colors">
+      <svg class="w-4 h-4 shrink-0" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
+      <span>Editorias</span>
+    </a>
+    <a href="/categoria/Economia" class="flex flex-col items-center gap-0.5 text-[#dd3333]">
+      <span class="w-2 h-2 rounded-full bg-[#dd3333] animate-ping"></span>
+      <span>Plantão</span>
+    </a>
+    <a href="/admin" class="flex flex-col items-center gap-0.5 hover:text-[#dd3333] transition-colors">
+      <svg class="w-4 h-4 shrink-0" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+      <span>Admin</span>
+    </a>
+    <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="flex flex-col items-center gap-0.5 hover:text-[#dd3333] transition-colors cursor-pointer">
+      <svg class="w-4 h-4 shrink-0" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
+      <span>Topo</span>
+    </button>
+  </aside>
 </footer>
+

@@ -3,146 +3,241 @@ import type { NoticiaListItem } from '../types/database.types';
 
 export interface Props {
   noticia: NoticiaListItem;
-  variant?: 'featured' | 'standard' | 'compact';
+  variant?: 'featured' | 'standard' | 'compact' | 'lateral' | 'ranked';
   priority?: boolean;
   class?: string;
+  rank?: number;
 }
 
-const { noticia, variant = 'standard', priority = false, class: customClass = '' } = Astro.props;
+const { noticia, variant = 'standard', priority = false, class: customClass = '', rank } = Astro.props;
 
 const safeTitle = (noticia.titulo && noticia.titulo.trim()) || 'Notícia em Atualização';
-const safeSummary = (noticia.resumo && noticia.resumo.trim()) || 'Clique para ler a cobertura completa desta matéria.';
+const safeSummary = (noticia.resumo && noticia.resumo.trim()) || 'Clique para conferir a cobertura completa desta matéria.';
 const safeSlug = (noticia.slug && noticia.slug.trim().replace(/^\/+|\/+$/g, '')) || (noticia.id ? `noticia-${noticia.id}` : 'recente');
 
 // Formatação amigável de data em português
 const dateFormatted = new Date(noticia.created_at || Date.now()).toLocaleDateString('pt-BR', {
   day: '2-digit',
-  month: 'short',
+  month: '2-digit',
   year: 'numeric',
 });
 
-// Tempo relativo ou hora
-const timeFormatted = new Date(noticia.created_at || Date.now()).toLocaleTimeString('pt-BR', {
-  hour: '2-digit',
-  minute: '2-digit',
-});
+// Categoria normalizada
+const categoriaNome = noticia.categoria || 'Geral';
 ---
 
+{/* =========================================================================
+    1. VARIANTE FEATURED: SUPER DESTAQUE CINEMATOGRÁFICO (Estilo CPG)
+    Capa ampla com gradiente escuro na base, badge pílula arredondada e título forte
+========================================================================= */}
 {variant === 'featured' ? (
-  <article class={`group relative flex flex-col h-full bg-white dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 rounded-xl overflow-hidden shadow-none hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.3)] transition-all duration-200 ${customClass}`}>
-    <a href={`/noticia/${safeSlug}`} class="block relative w-full aspect-[16/10] sm:aspect-[16/9] md:aspect-[21/10] lg:aspect-[16/9] overflow-hidden border-b-2 border-black dark:border-neutral-700 focus:outline-none" aria-label={`Ler matéria: ${safeTitle}`}>
+  <article class={`group relative w-full h-[360px] sm:h-[440px] lg:h-[500px] rounded-2xl overflow-hidden bg-neutral-900 border border-neutral-200 shadow-sm hover:shadow-md transition-all ${customClass}`}>
+    <a href={`/noticia/${safeSlug}`} class="block absolute inset-0 focus:outline-none" aria-label={`Ler matéria: ${safeTitle}`}>
       <img
         src={noticia.imagem}
         alt={safeTitle}
         loading={priority ? 'eager' : 'lazy'}
         decoding={priority ? 'sync' : 'async'}
         fetchpriority={priority ? 'high' : 'auto'}
-        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-        width="800"
-        height="450"
+        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+        width="1000"
+        height="600"
       />
-      <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 pointer-events-none"></div>
-      <span class="absolute top-4 left-4 bg-blue-600 text-white text-[10px] font-black uppercase px-2.5 py-1 rounded shadow-xs tracking-wider z-10 pointer-events-none">
-        {noticia.categoria}
-      </span>
+      <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/55 to-transparent pointer-events-none"></div>
     </a>
-    <div class="flex-1 p-5 sm:p-6 md:p-7 flex flex-col justify-between bg-white dark:bg-neutral-900">
-      <div>
-        <div class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-neutral-400 mb-2.5">
-          <span>{noticia.autor}</span>
-          <span>•</span>
-          <time datetime={noticia.created_at}>{dateFormatted}</time>
-        </div>
-        <h2 class="text-xl sm:text-2xl md:text-3xl font-black uppercase italic tracking-tight text-neutral-950 dark:text-white group-hover:text-blue-600 transition-colors leading-tight">
-          <a href={`/noticia/${safeSlug}`} class="focus:outline-none hover:underline">
+
+    <div class="absolute inset-0 p-5 sm:p-7 md:p-8 flex flex-col justify-end pointer-events-none">
+      <div class="pointer-events-auto">
+        <a 
+          href={`/categoria/${encodeURIComponent(categoriaNome)}`}
+          class="inline-block rounded-full bg-[#dd3333] hover:bg-red-700 text-white text-xs font-bold uppercase tracking-wider px-3.5 py-1 mb-3 transition-colors shadow-sm"
+        >
+          {categoriaNome}
+        </a>
+
+        <h2 class="text-xl sm:text-2xl lg:text-3xl font-bold leading-[125%] text-white tracking-tight group-hover:underline">
+          <a href={`/noticia/${safeSlug}`} class="focus:outline-none">
             {safeTitle}
           </a>
         </h2>
-        <a href={`/noticia/${safeSlug}`} class="block mt-3 text-gray-600 dark:text-neutral-300 line-clamp-2 sm:line-clamp-3 leading-relaxed text-xs sm:text-sm hover:text-neutral-950 dark:hover:text-white transition-colors">
-          {safeSummary}
-        </a>
-      </div>
-      <div class="mt-5 pt-3.5 border-t border-gray-200 dark:border-neutral-800 flex items-center justify-between">
-        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Destaque Principal</span>
-        <a href={`/noticia/${safeSlug}`} class="flex items-center gap-2 text-xs font-bold uppercase text-black dark:text-white group-hover:text-blue-600 transition-colors focus:outline-none">
-          <span>Acessar Matéria</span>
-          <div class="w-8 h-8 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center text-xs group-hover:bg-blue-600 group-hover:text-white transition-colors">
-            →
-          </div>
-        </a>
-      </div>
-    </div>
-  </article>
-) : variant === 'compact' ? (
-  <article class={`group relative flex gap-4 items-center p-3 hover:bg-gray-50 dark:hover:bg-neutral-800/50 rounded-lg transition-colors border-b border-gray-200 dark:border-neutral-800 last:border-b-0 ${customClass}`}>
-    <a href={`/noticia/${safeSlug}`} class="w-20 h-20 sm:w-24 sm:h-20 shrink-0 rounded-lg overflow-hidden relative border border-black dark:border-neutral-700 block focus:outline-none" aria-label={`Ler notícia: ${safeTitle}`}>
-      <img
-        src={noticia.imagem}
-        alt={safeTitle}
-        loading="lazy"
-        decoding="async"
-        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        width="96"
-        height="80"
-      />
-    </a>
-    <div class="flex-1 min-w-0">
-      <span class="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest block mb-1">
-        {noticia.categoria}
-      </span>
-      <h3 class="text-sm font-bold uppercase leading-snug text-neutral-950 dark:text-white line-clamp-2 group-hover:text-blue-600 transition-colors">
-        <a href={`/noticia/${safeSlug}`} class="hover:underline focus:outline-none">
-          {safeTitle}
-        </a>
-      </h3>
-      <div class="flex items-center justify-between mt-2 text-[10px] font-bold text-gray-400">
-        <time datetime={noticia.created_at}>{dateFormatted}</time>
-        <a href={`/noticia/${safeSlug}`} class="w-6 h-6 rounded-full bg-black dark:bg-neutral-700 text-white flex items-center justify-center text-[10px] group-hover:bg-blue-600 transition-colors focus:outline-none" aria-label="Abrir">
-          →
-        </a>
+
+        {safeSummary && (
+          <p class="hidden sm:block text-neutral-200 text-xs sm:text-sm line-clamp-2 mt-2 leading-relaxed">
+            {safeSummary}
+          </p>
+        )}
+
+        <div class="mt-3 flex items-center gap-3 text-xs text-neutral-300 font-medium">
+          <span>Por <strong class="text-white font-semibold">{noticia.autor || 'Redação'}</strong></span>
+          <span>•</span>
+          <time datetime={noticia.created_at}>{dateFormatted}</time>
+        </div>
       </div>
     </div>
   </article>
-) : (
-  <article class={`group relative flex flex-col justify-between h-full bg-white dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 rounded-xl overflow-hidden shadow-none hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.3)] transition-all duration-200 ${customClass}`}>
-    {noticia.imagem && (
-      <a href={`/noticia/${safeSlug}`} class="block relative w-full aspect-[16/9] overflow-hidden border-b-2 border-black dark:border-neutral-700 focus:outline-none" aria-label={`Ler notícia: ${safeTitle}`}>
+) : variant === 'lateral' ? (
+  /* =========================================================================
+     2. VARIANTE LATERAL: GRID LATERAL 2x2 DE DESTAQUES (Estilo CPG na cor branca)
+     Cards com thumbnail arredondada, categoria em vermelho/destaque, fundo branco
+  ========================================================================= */
+  <article class={`group flex flex-col justify-between h-full bg-white rounded-xl p-3 border border-neutral-200 hover:border-neutral-300 hover:shadow-xs transition-all ${customClass}`}>
+    <div class="space-y-2.5">
+      <a href={`/noticia/${safeSlug}`} class="block aspect-[16/10] overflow-hidden rounded-xl bg-neutral-100 relative focus:outline-none" aria-label={`Ler matéria: ${safeTitle}`}>
         <img
           src={noticia.imagem}
           alt={safeTitle}
           loading="lazy"
           decoding="async"
-          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-          width="500"
-          height="281"
+          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 rounded-xl"
+          width="400"
+          height="250"
         />
-        <span class="absolute top-3 left-3 bg-blue-600 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded shadow-xs tracking-wider z-10 pointer-events-none">
-          {noticia.categoria}
+        <span class="absolute top-2 left-2 rounded-full bg-[#dd3333] text-white text-[10px] font-bold uppercase px-2 py-0.5 tracking-wider shadow-2xs">
+          {categoriaNome}
         </span>
       </a>
-    )}
-    <div class="p-5 flex-1 flex flex-col justify-between">
+
       <div>
-        <div class="text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase tracking-wider mb-2">
-          {noticia.categoria}
-        </div>
-        <h3 class="text-base sm:text-lg font-bold uppercase leading-tight text-neutral-950 dark:text-white group-hover:text-blue-600 transition-colors line-clamp-2">
-          <a href={`/noticia/${safeSlug}`} class="hover:underline focus:outline-none">
+        <h3 class="text-sm sm:text-base font-bold text-neutral-900 line-clamp-3 leading-snug group-hover:text-[#dd3333] transition-colors">
+          <a href={`/noticia/${safeSlug}`} class="focus:outline-none">
             {safeTitle}
           </a>
         </h3>
-        <a href={`/noticia/${safeSlug}`} class="block mt-2 text-xs sm:text-sm text-gray-600 dark:text-neutral-300 line-clamp-2 leading-relaxed hover:text-neutral-950 dark:hover:text-white transition-colors">
-          {safeSummary}
-        </a>
       </div>
-      <div class="flex justify-between items-end mt-5 pt-3 border-t border-gray-100 dark:border-neutral-800">
-        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-          {dateFormatted}
+    </div>
+
+    <div class="pt-2 mt-2 border-t border-neutral-100 flex items-center justify-between text-[11px] text-neutral-500 font-medium">
+      <span class="truncate max-w-[120px]">{noticia.autor || 'Redação'}</span>
+      <time datetime={noticia.created_at}>{dateFormatted}</time>
+    </div>
+  </article>
+) : variant === 'ranked' ? (
+  /* =========================================================================
+     3. VARIANTE RANKED: LISTA DAS MAIS LIDAS NUMERADAS 1 A 5 (Estilo CPG na cor branca)
+  ========================================================================= */
+  <article class={`group flex items-center gap-3.5 py-3 border-b border-neutral-100 last:border-b-0 hover:bg-neutral-50 p-2 rounded-xl transition-colors ${customClass}`}>
+    {rank !== undefined && (
+      <span class="text-2xl sm:text-3xl font-black text-neutral-300 group-hover:text-[#dd3333] transition-colors shrink-0 w-7 text-center font-mono">
+        {rank}
+      </span>
+    )}
+    <a href={`/noticia/${safeSlug}`} class="w-18 h-18 sm:w-20 sm:h-20 shrink-0 rounded-xl overflow-hidden relative block focus:outline-none bg-neutral-100" aria-label={`Ler notícia: ${safeTitle}`}>
+      <img
+        src={noticia.imagem}
+        alt={safeTitle}
+        loading="lazy"
+        decoding="async"
+        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 rounded-xl"
+        width="80"
+        height="80"
+      />
+    </a>
+    <div class="flex-1 min-w-0">
+      <span class="text-[10px] font-bold text-[#dd3333] uppercase tracking-wider block mb-0.5">
+        {categoriaNome}
+      </span>
+      <h4 class="text-xs sm:text-sm font-bold text-neutral-900 line-clamp-2 leading-snug group-hover:text-[#dd3333] transition-colors">
+        <a href={`/noticia/${safeSlug}`} class="focus:outline-none">
+          {safeTitle}
+        </a>
+      </h4>
+      <div class="flex items-center gap-2 text-[10px] text-neutral-400 mt-1">
+        <time datetime={noticia.created_at}>{dateFormatted}</time>
+      </div>
+    </div>
+  </article>
+) : variant === 'compact' ? (
+  /* =========================================================================
+     4. VARIANTE COMPACT: FEED HORIZONTAL COM THUMBNAIL ARREDONDADA (Fundo Branco)
+  ========================================================================= */
+  <article class={`group flex flex-col sm:flex-row gap-3.5 sm:items-center p-3.5 bg-white rounded-xl border border-neutral-200 hover:border-neutral-300 hover:shadow-xs transition-all ${customClass}`}>
+    <a href={`/noticia/${safeSlug}`} class="w-full sm:w-44 sm:h-28 h-40 shrink-0 rounded-xl overflow-hidden relative block focus:outline-none bg-neutral-100" aria-label={`Ler notícia: ${safeTitle}`}>
+      <img
+        src={noticia.imagem}
+        alt={safeTitle}
+        loading="lazy"
+        decoding="async"
+        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 rounded-xl"
+        width="176"
+        height="112"
+      />
+      <span class="absolute top-2 left-2 rounded-full bg-[#dd3333] text-white text-[10px] font-bold uppercase px-2 py-0.5 tracking-wider sm:hidden">
+        {categoriaNome}
+      </span>
+    </a>
+    <div class="flex-1 min-w-0 flex flex-col justify-between">
+      <div>
+        <div class="hidden sm:flex items-center gap-2 mb-1.5">
+          <span class="text-xs font-bold text-[#dd3333] uppercase tracking-wide">
+            {categoriaNome}
+          </span>
+          <span class="text-neutral-300">•</span>
+          <span class="text-[11px] text-neutral-500 font-medium">
+            {noticia.autor || 'Redação'}
+          </span>
+        </div>
+        <h3 class="text-base sm:text-lg font-bold text-neutral-900 line-clamp-2 leading-snug group-hover:text-[#dd3333] transition-colors">
+          <a href={`/noticia/${safeSlug}`} class="focus:outline-none">
+            {safeTitle}
+          </a>
+        </h3>
+        {safeSummary && (
+          <p class="text-xs text-neutral-600 line-clamp-2 mt-1 leading-relaxed hidden md:block">
+            {safeSummary}
+          </p>
+        )}
+      </div>
+      <div class="flex items-center justify-between mt-2 pt-2 border-t border-neutral-100 text-[11px] text-neutral-500">
+        <time datetime={noticia.created_at}>{dateFormatted}</time>
+        <span class="font-bold text-[#dd3333] group-hover:translate-x-1 transition-transform flex items-center gap-1 text-xs">
+          Ler matéria <span>→</span>
         </span>
-        <a href={`/noticia/${safeSlug}`} class="w-8 h-8 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center text-xs group-hover:bg-blue-600 group-hover:text-white transition-colors focus:outline-none" aria-label="Abrir matéria">
-          →
-        </a>
       </div>
+    </div>
+  </article>
+) : (
+  /* =========================================================================
+     5. VARIANTE STANDARD: CARD EDITORIAL EM GRADE (Fundo Branco)
+  ========================================================================= */
+  <article class={`group flex flex-col justify-between h-full bg-white rounded-xl border border-neutral-200 overflow-hidden hover:border-neutral-300 hover:shadow-xs transition-all ${customClass}`}>
+    <div>
+      {noticia.imagem && (
+        <a href={`/noticia/${safeSlug}`} class="block relative w-full aspect-[16/9] overflow-hidden focus:outline-none bg-neutral-100" aria-label={`Ler notícia: ${safeTitle}`}>
+          <img
+            src={noticia.imagem}
+            alt={safeTitle}
+            loading="lazy"
+            decoding="async"
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+            width="500"
+            height="281"
+          />
+          <span class="absolute top-3 left-3 bg-[#dd3333] text-white text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full tracking-wider z-10 pointer-events-none shadow-2xs">
+            {categoriaNome}
+          </span>
+        </a>
+      )}
+      <div class="p-4 sm:p-5">
+        <div class="text-[#dd3333] text-xs font-bold uppercase tracking-wide mb-1.5">
+          {categoriaNome}
+        </div>
+        <h3 class="text-base sm:text-lg font-bold leading-snug text-neutral-900 group-hover:text-[#dd3333] transition-colors line-clamp-2">
+          <a href={`/noticia/${safeSlug}`} class="focus:outline-none">
+            {safeTitle}
+          </a>
+        </h3>
+        {safeSummary && (
+          <p class="mt-2 text-xs sm:text-sm text-neutral-600 line-clamp-2 leading-relaxed">
+            {safeSummary}
+          </p>
+        )}
+      </div>
+    </div>
+    <div class="px-4 sm:px-5 pb-4 pt-3 border-t border-neutral-100 flex justify-between items-center text-[11px] text-neutral-500">
+      <span>{noticia.autor || 'Redação'} • {dateFormatted}</span>
+      <a href={`/noticia/${safeSlug}`} class="w-7 h-7 rounded-full bg-neutral-100 text-neutral-700 hover:bg-[#dd3333] hover:text-white flex items-center justify-center text-xs transition-colors focus:outline-none" aria-label="Abrir matéria">
+        →
+      </a>
     </div>
   </article>
 )}

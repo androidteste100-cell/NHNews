@@ -8,6 +8,7 @@
     "build": "astro build",
     "preview": "astro preview --port 3000 --host 0.0.0.0",
     "clean": "rm -rf dist .vercel",
+    "make-zip": "python3 scripts/make-zip.py",
     "lint": "tsc --noEmit"
   },
   "dependencies": {

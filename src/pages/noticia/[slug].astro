@@ -38,7 +38,7 @@ const autorInitial = (safeAutor.charAt(0) || 'R').toUpperCase();
 // Alturas mínimas obrigatórias para mitigar CLS: min-h-[250px] para in-article e min-h-[90px] para footer
 const adSlot1Html = `
   <aside class="ad-slot-wrapper my-8 flex flex-col items-center justify-center not-prose" aria-label="Espaço publicitário intermediário 1">
-    <div class="w-full flex flex-col items-center justify-center rounded-lg border border-dashed border-neutral-300 dark:border-neutral-700 bg-neutral-50/80 dark:bg-neutral-900/50 p-3 min-h-[250px] max-w-[728px] text-center">
+    <div class="w-full flex flex-col items-center justify-center rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-3 min-h-[250px] max-w-[728px] text-center">
       <span class="text-[10px] uppercase font-semibold tracking-wider text-neutral-400 self-end mb-2 select-none">Publicidade</span>
       <div class="flex flex-col items-center justify-center p-4 text-neutral-400">
         <svg class="w-6 h-6 mb-1 opacity-40 shrink-0" width="24" height="24" style="width: 24px; height: 24px; max-width: 24px; max-height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
@@ -51,7 +51,7 @@ const adSlot1Html = `
 
 const adSlot2Html = `
   <aside class="ad-slot-wrapper my-8 flex flex-col items-center justify-center not-prose" aria-label="Espaço publicitário intermediário 2">
-    <div class="w-full flex flex-col items-center justify-center rounded-lg border border-dashed border-neutral-300 dark:border-neutral-700 bg-neutral-50/80 dark:bg-neutral-900/50 p-3 min-h-[250px] max-w-[728px] text-center">
+    <div class="w-full flex flex-col items-center justify-center rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-3 min-h-[250px] max-w-[728px] text-center">
       <span class="text-[10px] uppercase font-semibold tracking-wider text-neutral-400 self-end mb-2 select-none">Publicidade</span>
       <div class="flex flex-col items-center justify-center p-4 text-neutral-400">
         <svg class="w-6 h-6 mb-1 opacity-40 shrink-0" width="24" height="24" style="width: 24px; height: 24px; max-width: 24px; max-height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
@@ -64,7 +64,7 @@ const adSlot2Html = `
 
 const adSlotFooterHtml = `
   <aside class="ad-slot-wrapper my-8 flex flex-col items-center justify-center not-prose" aria-label="Espaço publicitário de fechamento">
-    <div class="w-full flex flex-col items-center justify-center rounded-lg border border-dashed border-neutral-300 dark:border-neutral-700 bg-neutral-50/80 dark:bg-neutral-900/50 p-3 min-h-[90px] max-w-[728px] text-center">
+    <div class="w-full flex flex-col items-center justify-center rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-3 min-h-[90px] max-w-[728px] text-center">
       <span class="text-[10px] uppercase font-semibold tracking-wider text-neutral-400 self-end mb-1 select-none">Publicidade</span>
       <span class="text-xs font-medium text-neutral-500">Espaço Reservado de Encerramento (Footer Article)</span>
     </div>
@@ -120,14 +120,14 @@ const breadcrumbs = [
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     
     <!-- Breadcrumb visual de navegação -->
-    <nav aria-label="Breadcrumb" class="mb-6 text-xs text-neutral-500 flex items-center gap-1.5 flex-wrap">
-      <a href="/" class="hover:text-sky-600 transition-colors">Início</a>
-      <span>/</span>
-      <a href={`/categoria/${safeCategoria}`} class="hover:text-sky-600 transition-colors">
+    <nav aria-label="Breadcrumb" class="mb-6 text-xs text-neutral-500 flex items-center gap-2 flex-wrap">
+      <a href="/" class="hover:text-[#dd3333] transition-colors">Início</a>
+      <span class="text-neutral-300">/</span>
+      <a href={`/categoria/${safeCategoria}`} class="hover:text-[#dd3333] transition-colors font-medium">
         {safeCategoria}
       </a>
-      <span>/</span>
-      <span class="text-neutral-800 dark:text-neutral-200 truncate max-w-xs sm:max-w-md">
+      <span class="text-neutral-300">/</span>
+      <span class="text-neutral-800 truncate max-w-xs sm:max-w-md">
         {safeTitulo}
       </span>
     </nav>
@@ -136,51 +136,51 @@ const breadcrumbs = [
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
       
       <!-- Corpo Principal do Artigo (8 colunas) -->
-      <article class="lg:col-span-8 bg-white dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 rounded-xl p-6 sm:p-8">
+      <article class="lg:col-span-8 bg-white border border-neutral-200 rounded-2xl p-6 sm:p-8 shadow-xs">
         
         <!-- Cabeçalho do Artigo -->
         <header class="mb-8">
           <div class="mb-3">
             <a
               href={`/categoria/${safeCategoria}`}
-              class="inline-block bg-blue-600 text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded shadow-xs"
+              class="inline-block bg-[#dd3333] text-white text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full shadow-xs"
             >
               {safeCategoria}
             </a>
           </div>
 
-          <h1 class="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight uppercase italic text-neutral-950 dark:text-white leading-[1.2] mb-4">
+          <h1 class="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight uppercase italic text-neutral-950 leading-[1.2] mb-4">
             {safeTitulo}
           </h1>
 
           {safeResumo && (
-            <p class="text-base sm:text-lg text-gray-600 dark:text-neutral-300 leading-relaxed font-sans font-normal mb-6">
+            <p class="text-base sm:text-lg text-neutral-600 leading-relaxed font-sans font-normal mb-6">
               {safeResumo}
             </p>
           )}
 
           <!-- Metadados do Autor e Data -->
-          <div class="flex items-center justify-between py-3 border-y-2 border-black dark:border-neutral-700 text-xs text-gray-500">
+          <div class="flex items-center justify-between py-3 border-y border-neutral-200 text-xs text-neutral-500">
             <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center font-bold uppercase text-xs">
+              <div class="w-8 h-8 rounded-full bg-neutral-900 text-white flex items-center justify-center font-bold uppercase text-xs">
                 {autorInitial}
               </div>
               <div>
-                <span class="font-bold text-neutral-900 dark:text-white block uppercase text-[11px]">{safeAutor}</span>
-                <span class="text-[10px] text-gray-400">REDAÇÃO ESPECIAL</span>
+                <span class="font-bold text-neutral-900 block uppercase text-[11px]">{safeAutor}</span>
+                <span class="text-[10px] text-neutral-400">REDAÇÃO ESPECIAL</span>
               </div>
             </div>
             <div class="text-right">
-              <time datetime={isoDate} class="block font-bold text-neutral-900 dark:text-neutral-300 text-[11px]">
+              <time datetime={isoDate} class="block font-bold text-neutral-900 text-[11px]">
                 {publishedDate}
               </time>
-              <span class="text-[10px] text-gray-400">ATUALIZADO ÀS {publishedTime}</span>
+              <span class="text-[10px] text-neutral-400">ATUALIZADO ÀS {publishedTime}</span>
             </div>
           </div>
         </header>
 
         <!-- Imagem Principal de Destaque com Aspect Ratio Fixo e LCP Otimizado -->
-        <figure class="mb-8 rounded-xl overflow-hidden border-2 border-black dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-900">
+        <figure class="mb-8 rounded-2xl overflow-hidden border border-neutral-200 bg-neutral-100">
           <img
             src={safeImagem}
             alt={safeTitulo}
@@ -191,23 +191,23 @@ const breadcrumbs = [
             decoding="sync"
             class="w-full aspect-[16/9] object-cover"
           />
-          <figcaption class="text-[10px] font-mono text-gray-400 p-2 text-right uppercase bg-gray-50 dark:bg-neutral-800 border-t border-black dark:border-neutral-700">
+          <figcaption class="text-[10px] font-mono text-neutral-500 p-2 text-right uppercase bg-neutral-50 border-t border-neutral-200">
             FOTO: DIVULGAÇÃO / AGÊNCIA DE NOTÍCIAS
           </figcaption>
         </figure>
 
         <!-- Conteúdo do Artigo Sanitizado com Anúncios Injetados -->
         <div 
-          class="prose prose-neutral dark:prose-invert max-w-none text-base leading-relaxed text-neutral-800 dark:text-neutral-200 [&>p]:mb-6 [&>h2]:text-xl [&>h2]:font-black [&>h2]:uppercase [&>h2]:mt-8 [&>h2]:mb-3 [&>blockquote]:border-l-4 [&>blockquote]:border-blue-600 [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:text-gray-700 dark:[&>blockquote]:text-neutral-300"
+          class="prose prose-neutral max-w-none text-base leading-relaxed text-neutral-800 [&>p]:mb-6 [&>h2]:text-xl [&>h2]:font-bold [&>h2]:mt-8 [&>h2]:mb-3 [&>blockquote]:border-l-4 [&>blockquote]:border-[#dd3333] [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:text-neutral-700"
           set:html={finalHtml}
         />
 
         <!-- Compartilhamento e Tags de Fechamento -->
-        <div class="mt-12 pt-6 border-t-2 border-black dark:border-neutral-700 flex items-center justify-between">
-          <div class="text-xs text-gray-500 font-mono">
+        <div class="mt-12 pt-6 border-t border-neutral-200 flex items-center justify-between">
+          <div class="text-xs text-neutral-500 font-mono">
             PORTAL DE NOTÍCIAS • VERCEL SSR EDGE
           </div>
-          <a href="/" class="text-xs font-bold uppercase tracking-wider text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1">
+          <a href="/" class="text-xs font-bold uppercase tracking-wider text-[#dd3333] hover:underline transition-colors flex items-center gap-1">
             <span>← Página Inicial</span>
           </a>
         </div>
@@ -217,24 +217,25 @@ const breadcrumbs = [
       <!-- Coluna Lateral (4 colunas) -->
       <aside class="lg:col-span-4 space-y-6" aria-label="Publicidade e Notícias Relacionadas">
         
-        <!-- Banner de Sidebar Bento (min-h-[600px] para CLS) -->
+        <!-- Banner de Sidebar Bento -->
         <div class="sticky top-6 space-y-6">
-          <div class="bg-white dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 rounded-xl p-4 flex flex-col items-center justify-center">
+          <div class="bg-white border border-neutral-200 rounded-2xl p-4 shadow-xs flex flex-col items-center justify-center">
             <AdBanner slotType="sidebar" customClass="!my-0" />
           </div>
 
-          <!-- Bloco de Notícias Relacionadas Bento -->
+          <!-- Bloco de Notícias Relacionadas -->
           {recomendadas.length > 0 && (
-            <div class="bg-white dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 rounded-xl p-5">
-              <div class="flex items-center justify-between pb-3 mb-3 border-b-2 border-black dark:border-neutral-700">
-                <h3 class="text-sm font-black text-neutral-900 dark:text-white uppercase italic tracking-tight">
+            <div class="bg-white border border-neutral-200 rounded-2xl p-5 shadow-xs">
+              <div class="flex items-center justify-between pb-3 mb-3 border-b border-neutral-200">
+                <h3 class="text-sm font-bold text-neutral-900 uppercase tracking-tight flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-[#dd3333] inline-block"></span>
                   Leia Também
                 </h3>
-                <span class="text-[10px] font-bold text-blue-600 uppercase">
+                <span class="text-[10px] font-bold text-[#dd3333] uppercase">
                   Recomendadas
                 </span>
               </div>
-              <div class="divide-y divide-gray-200 dark:divide-neutral-800">
+              <div class="divide-y divide-neutral-100">
                 {recomendadas.map((rec) => (
                   <NewsCard noticia={rec} variant="compact" />
                 ))}
