@@ -11,9 +11,15 @@ export interface Props {
 
 const { noticia, variant = 'standard', priority = false, class: customClass = '', rank } = Astro.props;
 
-const safeTitle = (noticia.titulo && noticia.titulo.trim()) || 'Notícia em Atualização';
+const rawTitle = noticia.titulo ? noticia.titulo.trim() : '';
+const isTitleCorrupt = !rawTitle || rawTitle === '{' || rawTitle === '{}' || rawTitle.length < 3;
+const safeTitle = !isTitleCorrupt 
+  ? rawTitle 
+  : (noticia.resumo && noticia.resumo.trim().length > 5 ? noticia.resumo.trim().slice(0, 90) : 'Notícia em Atualização');
 const safeSummary = (noticia.resumo && noticia.resumo.trim()) || 'Clique para conferir a cobertura completa desta matéria.';
 const safeSlug = (noticia.slug && noticia.slug.trim().replace(/^\/+|\/+$/g, '')) || (noticia.id ? `noticia-${noticia.id}` : 'recente');
+const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?q=80&w=1200&auto=format&fit=crop';
+const safeImage = (noticia.imagem && noticia.imagem.trim()) || DEFAULT_IMAGE;
 
 // Formatação amigável de data em português
 const dateFormatted = new Date(noticia.created_at || Date.now()).toLocaleDateString('pt-BR', {
@@ -31,10 +37,10 @@ const categoriaNome = noticia.categoria || 'Geral';
     Capa ampla com gradiente escuro na base, badge pílula arredondada e título forte
 ========================================================================= */}
 {variant === 'featured' ? (
-  <article class={`group relative w-full h-[360px] sm:h-[440px] lg:h-[500px] rounded-2xl overflow-hidden bg-neutral-900 border border-neutral-200 shadow-sm hover:shadow-md transition-all ${customClass}`}>
+  <article class={`group relative w-full min-h-[380px] sm:min-h-[440px] lg:min-h-[500px] rounded-2xl overflow-hidden bg-neutral-900 border border-neutral-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-end ${customClass}`}>
     <a href={`/noticia/${safeSlug}`} class="block absolute inset-0 focus:outline-none" aria-label={`Ler matéria: ${safeTitle}`}>
       <img
-        src={noticia.imagem}
+        src={safeImage}
         alt={safeTitle}
         loading={priority ? 'eager' : 'lazy'}
         decoding={priority ? 'sync' : 'async'}
@@ -43,34 +49,45 @@ const categoriaNome = noticia.categoria || 'Geral';
         width="1000"
         height="600"
       />
-      <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/55 to-transparent pointer-events-none"></div>
+      <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent pointer-events-none"></div>
     </a>
 
-    <div class="absolute inset-0 p-5 sm:p-7 md:p-8 flex flex-col justify-end pointer-events-none">
+    <div class="relative z-10 p-4 sm:p-7 md:p-8 flex flex-col justify-end pointer-events-auto">
       <div class="pointer-events-auto">
-        <a 
-          href={`/categoria/${encodeURIComponent(categoriaNome)}`}
-          class="inline-block rounded-full bg-[#dd3333] hover:bg-red-700 text-white text-xs font-bold uppercase tracking-wider px-3.5 py-1 mb-3 transition-colors shadow-sm"
-        >
-          {categoriaNome}
-        </a>
+        <div class="flex items-center gap-2 mb-2 sm:mb-3 flex-wrap">
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-[#dd3333] text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider px-3 py-1 shadow-sm">
+            <span class="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+            PLANTÃO
+          </span>
+          <a 
+            href={`/categoria/${encodeURIComponent(categoriaNome)}`}
+            class="inline-block rounded-full bg-blue-600 hover:bg-blue-700 text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider px-3 py-1 transition-colors shadow-sm backdrop-blur-xs border border-white/20"
+          >
+            {categoriaNome}
+          </a>
+        </div>
 
-        <h2 class="text-xl sm:text-2xl lg:text-3xl font-bold leading-[125%] text-white tracking-tight group-hover:underline">
+        <h2 class="text-lg sm:text-2xl lg:text-3xl font-bold leading-[125%] text-white tracking-tight group-hover:underline">
           <a href={`/noticia/${safeSlug}`} class="focus:outline-none">
             {safeTitle}
           </a>
         </h2>
 
         {safeSummary && (
-          <p class="hidden sm:block text-neutral-200 text-xs sm:text-sm line-clamp-2 mt-2 leading-relaxed">
+          <p class="text-neutral-200 text-xs sm:text-sm line-clamp-2 sm:line-clamp-3 mt-1.5 sm:mt-2 leading-relaxed">
             {safeSummary}
           </p>
         )}
 
-        <div class="mt-3 flex items-center gap-3 text-xs text-neutral-300 font-medium">
-          <span>Por <strong class="text-white font-semibold">{noticia.autor || 'Redação'}</strong></span>
-          <span>•</span>
-          <time datetime={noticia.created_at}>{dateFormatted}</time>
+        <div class="mt-2.5 sm:mt-3 flex items-center justify-between gap-3 text-xs text-neutral-300 font-medium flex-wrap">
+          <div class="flex items-center gap-2">
+            <span>Por <strong class="text-white font-semibold">{noticia.autor || 'Redação'}</strong></span>
+            <span>•</span>
+            <time datetime={noticia.created_at}>{dateFormatted}</time>
+          </div>
+          <span class="text-white group-hover:text-blue-400 font-bold transition-colors flex items-center gap-1">
+            Ler completa →
+          </span>
         </div>
       </div>
     </div>
@@ -78,13 +95,13 @@ const categoriaNome = noticia.categoria || 'Geral';
 ) : variant === 'lateral' ? (
   /* =========================================================================
      2. VARIANTE LATERAL: GRID LATERAL 2x2 DE DESTAQUES (Estilo CPG na cor branca)
-     Cards com thumbnail arredondada, categoria em vermelho/destaque, fundo branco
+     Cards com thumbnail arredondada, categoria em azul elegante, fundo branco
   ========================================================================= */
   <article class={`group flex flex-col justify-between h-full bg-white rounded-xl p-3 border border-neutral-200 hover:border-neutral-300 hover:shadow-xs transition-all ${customClass}`}>
     <div class="space-y-2.5">
       <a href={`/noticia/${safeSlug}`} class="block aspect-[16/10] overflow-hidden rounded-xl bg-neutral-100 relative focus:outline-none" aria-label={`Ler matéria: ${safeTitle}`}>
         <img
-          src={noticia.imagem}
+          src={safeImage}
           alt={safeTitle}
           loading="lazy"
           decoding="async"
@@ -92,13 +109,13 @@ const categoriaNome = noticia.categoria || 'Geral';
           width="400"
           height="250"
         />
-        <span class="absolute top-2 left-2 rounded-full bg-[#dd3333] text-white text-[10px] font-bold uppercase px-2 py-0.5 tracking-wider shadow-2xs">
+        <span class="absolute top-2 left-2 rounded-full bg-blue-600 text-white text-[10px] font-bold uppercase px-2.5 py-0.5 tracking-wider shadow-xs">
           {categoriaNome}
         </span>
       </a>
 
       <div>
-        <h3 class="text-sm sm:text-base font-bold text-neutral-900 line-clamp-3 leading-snug group-hover:text-[#dd3333] transition-colors">
+        <h3 class="text-sm sm:text-base font-bold text-neutral-900 line-clamp-3 leading-snug group-hover:text-blue-600 transition-colors">
           <a href={`/noticia/${safeSlug}`} class="focus:outline-none">
             {safeTitle}
           </a>
@@ -117,13 +134,13 @@ const categoriaNome = noticia.categoria || 'Geral';
   ========================================================================= */
   <article class={`group flex items-center gap-3.5 py-3 border-b border-neutral-100 last:border-b-0 hover:bg-neutral-50 p-2 rounded-xl transition-colors ${customClass}`}>
     {rank !== undefined && (
-      <span class="text-2xl sm:text-3xl font-black text-neutral-300 group-hover:text-[#dd3333] transition-colors shrink-0 w-7 text-center font-mono">
+      <span class="text-2xl sm:text-3xl font-black text-neutral-300 group-hover:text-blue-600 transition-colors shrink-0 w-7 text-center font-mono">
         {rank}
       </span>
     )}
     <a href={`/noticia/${safeSlug}`} class="w-18 h-18 sm:w-20 sm:h-20 shrink-0 rounded-xl overflow-hidden relative block focus:outline-none bg-neutral-100" aria-label={`Ler notícia: ${safeTitle}`}>
       <img
-        src={noticia.imagem}
+        src={safeImage}
         alt={safeTitle}
         loading="lazy"
         decoding="async"
@@ -133,10 +150,10 @@ const categoriaNome = noticia.categoria || 'Geral';
       />
     </a>
     <div class="flex-1 min-w-0">
-      <span class="text-[10px] font-bold text-[#dd3333] uppercase tracking-wider block mb-0.5">
+      <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider block mb-0.5">
         {categoriaNome}
       </span>
-      <h4 class="text-xs sm:text-sm font-bold text-neutral-900 line-clamp-2 leading-snug group-hover:text-[#dd3333] transition-colors">
+      <h4 class="text-xs sm:text-sm font-bold text-neutral-900 line-clamp-2 leading-snug group-hover:text-blue-600 transition-colors">
         <a href={`/noticia/${safeSlug}`} class="focus:outline-none">
           {safeTitle}
         </a>
@@ -153,7 +170,7 @@ const categoriaNome = noticia.categoria || 'Geral';
   <article class={`group flex flex-col sm:flex-row gap-3.5 sm:items-center p-3.5 bg-white rounded-xl border border-neutral-200 hover:border-neutral-300 hover:shadow-xs transition-all ${customClass}`}>
     <a href={`/noticia/${safeSlug}`} class="w-full sm:w-44 sm:h-28 h-40 shrink-0 rounded-xl overflow-hidden relative block focus:outline-none bg-neutral-100" aria-label={`Ler notícia: ${safeTitle}`}>
       <img
-        src={noticia.imagem}
+        src={safeImage}
         alt={safeTitle}
         loading="lazy"
         decoding="async"
@@ -161,14 +178,14 @@ const categoriaNome = noticia.categoria || 'Geral';
         width="176"
         height="112"
       />
-      <span class="absolute top-2 left-2 rounded-full bg-[#dd3333] text-white text-[10px] font-bold uppercase px-2 py-0.5 tracking-wider sm:hidden">
+      <span class="absolute top-2 left-2 rounded-full bg-blue-600 text-white text-[10px] font-bold uppercase px-2.5 py-0.5 tracking-wider sm:hidden shadow-xs">
         {categoriaNome}
       </span>
     </a>
     <div class="flex-1 min-w-0 flex flex-col justify-between">
       <div>
         <div class="hidden sm:flex items-center gap-2 mb-1.5">
-          <span class="text-xs font-bold text-[#dd3333] uppercase tracking-wide">
+          <span class="text-xs font-bold text-blue-600 uppercase tracking-wide">
             {categoriaNome}
           </span>
           <span class="text-neutral-300">•</span>
@@ -176,20 +193,20 @@ const categoriaNome = noticia.categoria || 'Geral';
             {noticia.autor || 'Redação'}
           </span>
         </div>
-        <h3 class="text-base sm:text-lg font-bold text-neutral-900 line-clamp-2 leading-snug group-hover:text-[#dd3333] transition-colors">
+        <h3 class="text-base sm:text-lg font-bold text-neutral-900 line-clamp-2 leading-snug group-hover:text-blue-600 transition-colors">
           <a href={`/noticia/${safeSlug}`} class="focus:outline-none">
             {safeTitle}
           </a>
         </h3>
         {safeSummary && (
-          <p class="text-xs text-neutral-600 line-clamp-2 mt-1 leading-relaxed hidden md:block">
+          <p class="text-xs text-neutral-600 line-clamp-2 mt-1 leading-relaxed">
             {safeSummary}
           </p>
         )}
       </div>
       <div class="flex items-center justify-between mt-2 pt-2 border-t border-neutral-100 text-[11px] text-neutral-500">
         <time datetime={noticia.created_at}>{dateFormatted}</time>
-        <span class="font-bold text-[#dd3333] group-hover:translate-x-1 transition-transform flex items-center gap-1 text-xs">
+        <span class="font-bold text-blue-600 group-hover:translate-x-1 transition-transform flex items-center gap-1 text-xs">
           Ler matéria <span>→</span>
         </span>
       </div>
@@ -201,27 +218,25 @@ const categoriaNome = noticia.categoria || 'Geral';
   ========================================================================= */
   <article class={`group flex flex-col justify-between h-full bg-white rounded-xl border border-neutral-200 overflow-hidden hover:border-neutral-300 hover:shadow-xs transition-all ${customClass}`}>
     <div>
-      {noticia.imagem && (
-        <a href={`/noticia/${safeSlug}`} class="block relative w-full aspect-[16/9] overflow-hidden focus:outline-none bg-neutral-100" aria-label={`Ler notícia: ${safeTitle}`}>
-          <img
-            src={noticia.imagem}
-            alt={safeTitle}
-            loading="lazy"
-            decoding="async"
-            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-            width="500"
-            height="281"
-          />
-          <span class="absolute top-3 left-3 bg-[#dd3333] text-white text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full tracking-wider z-10 pointer-events-none shadow-2xs">
-            {categoriaNome}
-          </span>
-        </a>
-      )}
+      <a href={`/noticia/${safeSlug}`} class="block relative w-full aspect-[16/9] overflow-hidden focus:outline-none bg-neutral-100" aria-label={`Ler notícia: ${safeTitle}`}>
+        <img
+          src={safeImage}
+          alt={safeTitle}
+          loading="lazy"
+          decoding="async"
+          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+          width="500"
+          height="281"
+        />
+        <span class="absolute top-3 left-3 bg-blue-600 text-white text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full tracking-wider z-10 pointer-events-none shadow-xs">
+          {categoriaNome}
+        </span>
+      </a>
       <div class="p-4 sm:p-5">
-        <div class="text-[#dd3333] text-xs font-bold uppercase tracking-wide mb-1.5">
+        <div class="text-blue-600 text-xs font-bold uppercase tracking-wide mb-1.5">
           {categoriaNome}
         </div>
-        <h3 class="text-base sm:text-lg font-bold leading-snug text-neutral-900 group-hover:text-[#dd3333] transition-colors line-clamp-2">
+        <h3 class="text-base sm:text-lg font-bold leading-snug text-neutral-900 group-hover:text-blue-600 transition-colors line-clamp-2">
           <a href={`/noticia/${safeSlug}`} class="focus:outline-none">
             {safeTitle}
           </a>
@@ -235,7 +250,7 @@ const categoriaNome = noticia.categoria || 'Geral';
     </div>
     <div class="px-4 sm:px-5 pb-4 pt-3 border-t border-neutral-100 flex justify-between items-center text-[11px] text-neutral-500">
       <span>{noticia.autor || 'Redação'} • {dateFormatted}</span>
-      <a href={`/noticia/${safeSlug}`} class="w-7 h-7 rounded-full bg-neutral-100 text-neutral-700 hover:bg-[#dd3333] hover:text-white flex items-center justify-center text-xs transition-colors focus:outline-none" aria-label="Abrir matéria">
+      <a href={`/noticia/${safeSlug}`} class="w-7 h-7 rounded-full bg-neutral-100 text-neutral-700 hover:bg-blue-600 hover:text-white flex items-center justify-center text-xs transition-colors focus:outline-none" aria-label="Abrir matéria">
         →
       </a>
     </div>
