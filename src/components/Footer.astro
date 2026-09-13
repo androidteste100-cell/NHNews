@@ -1,16 +1,8 @@
 ---
 import AdBanner from './AdBanner.astro';
+import { OFFICIAL_CATEGORIES } from '../lib/categories';
 
 const currentYear = new Date().getFullYear();
-
-const categories = [
-  'Tecnologia',
-  'Economia',
-  'Mercados',
-  'Ciência',
-  'Cidades',
-  'Segurança',
-];
 ---
 
 <footer id="menu-inferior" class="w-full bg-[#111827] text-neutral-200 border-t-4 border-[#dd3333] mt-16 pt-10 pb-16 sm:pb-8 shadow-md">
@@ -49,12 +41,13 @@ const categories = [
           <span>Início</span>
         </a>
 
-        {categories.map((cat) => (
+        {OFFICIAL_CATEGORIES.map((cat) => (
           <a 
-            href={`/categoria/${cat}`} 
-            class="px-4 py-2 rounded-full bg-neutral-800 hover:bg-[#dd3333] text-neutral-200 hover:text-white border border-neutral-700 hover:border-[#dd3333] font-bold text-xs uppercase tracking-wider shadow-2xs transition-all hover:scale-102"
+            href={`/categoria/${cat.slug}`} 
+            class="px-4 py-2 rounded-full bg-neutral-800 hover:bg-[#dd3333] text-neutral-200 hover:text-white border border-neutral-700 hover:border-[#dd3333] font-bold text-xs uppercase tracking-wider shadow-2xs transition-all hover:scale-102 flex items-center gap-1.5"
           >
-            {cat}
+            <span class={`w-2 h-2 rounded-full ${cat.bg}`}></span>
+            <span>{cat.name}</span>
           </a>
         ))}
 
@@ -103,14 +96,14 @@ const categories = [
       <div>
         <h3 class="text-xs font-bold text-white uppercase tracking-widest mb-4 flex items-center gap-1.5">
           <span class="w-2 h-2 rounded-full bg-[#dd3333]"></span>
-          <span>Categorias</span>
+          <span>9 Categorias Oficiais</span>
         </h3>
         <ul class="space-y-2 text-xs font-bold uppercase tracking-wider text-neutral-300">
-          {categories.map((cat) => (
+          {OFFICIAL_CATEGORIES.map((cat) => (
             <li>
-              <a href={`/categoria/${cat}`} class="hover:text-[#dd3333] transition-colors flex items-center gap-1">
-                <span class="text-neutral-500">›</span>
-                <span>{cat}</span>
+              <a href={`/categoria/${cat.slug}`} class="hover:text-[#dd3333] transition-colors flex items-center gap-1.5">
+                <span class={`w-1.5 h-1.5 rounded-full ${cat.bg}`}></span>
+                <span>{cat.name}</span>
               </a>
             </li>
           ))}

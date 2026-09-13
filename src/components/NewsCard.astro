@@ -30,8 +30,7 @@ const dateFormatted = new Date(noticia.created_at || Date.now()).toLocaleDateStr
 });
 
 // Categoria normalizada e estilo temático específico
-const categoriaNome = noticia.categoria || 'Geral';
-const catStyle = getCategoryStyle(categoriaNome);
+const catStyle = getCategoryStyle(noticia.categoria, noticia.titulo);
 ---
 
 {/* =========================================================================
@@ -62,10 +61,10 @@ const catStyle = getCategoryStyle(categoriaNome);
             PLANTÃO
           </span>
           <a 
-            href={`/categoria/${encodeURIComponent(categoriaNome)}`}
+            href={`/categoria/${catStyle.slug}`}
             class={`inline-block rounded-full ${catStyle.bg} ${catStyle.hoverBg} text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider px-3 py-1 transition-colors shadow-sm backdrop-blur-xs border border-white/20`}
           >
-            {categoriaNome}
+            {catStyle.name}
           </a>
         </div>
 
@@ -111,12 +110,15 @@ const catStyle = getCategoryStyle(categoriaNome);
           width="400"
           height="250"
         />
-        <span class={`absolute top-2 left-2 rounded-full ${catStyle.bg} text-white text-[10px] font-bold uppercase px-2.5 py-0.5 tracking-wider shadow-xs`}>
-          {categoriaNome}
+        <span class={`absolute top-2 left-2 rounded-full ${catStyle.bg} text-white text-[10px] font-bold uppercase px-2.5 py-0.5 tracking-wider shadow-xs z-10 pointer-events-none`}>
+          {catStyle.name}
         </span>
       </a>
 
       <div>
+        <a href={`/categoria/${catStyle.slug}`} class={`text-[10px] font-bold ${catStyle.text} ${catStyle.hoverText} uppercase tracking-wider inline-block mb-1`}>
+          {catStyle.name}
+        </a>
         <h3 class={`text-sm sm:text-base font-bold text-neutral-900 line-clamp-3 leading-snug ${catStyle.hoverText} transition-colors`}>
           <a href={`/noticia/${safeSlug}`} class="focus:outline-none">
             {safeTitle}
@@ -152,9 +154,9 @@ const catStyle = getCategoryStyle(categoriaNome);
       />
     </a>
     <div class="flex-1 min-w-0">
-      <span class={`text-[10px] font-bold ${catStyle.text} uppercase tracking-wider block mb-0.5`}>
-        {categoriaNome}
-      </span>
+      <a href={`/categoria/${catStyle.slug}`} class={`text-[10px] font-bold ${catStyle.text} ${catStyle.hoverText} uppercase tracking-wider inline-block mb-0.5`}>
+        {catStyle.name}
+      </a>
       <h4 class={`text-xs sm:text-sm font-bold text-neutral-900 line-clamp-2 leading-snug ${catStyle.hoverText} transition-colors`}>
         <a href={`/noticia/${safeSlug}`} class="focus:outline-none">
           {safeTitle}
@@ -180,16 +182,16 @@ const catStyle = getCategoryStyle(categoriaNome);
         width="176"
         height="112"
       />
-      <span class={`absolute top-2 left-2 rounded-full ${catStyle.bg} text-white text-[10px] font-bold uppercase px-2.5 py-0.5 tracking-wider sm:hidden shadow-xs`}>
-        {categoriaNome}
+      <span class={`absolute top-2 left-2 rounded-full ${catStyle.bg} text-white text-[10px] font-bold uppercase px-2.5 py-0.5 tracking-wider sm:hidden shadow-xs z-10 pointer-events-none`}>
+        {catStyle.name}
       </span>
     </a>
     <div class="flex-1 min-w-0 flex flex-col justify-between">
       <div>
         <div class="hidden sm:flex items-center gap-2 mb-1.5">
-          <span class={`text-xs font-bold ${catStyle.text} uppercase tracking-wide`}>
-            {categoriaNome}
-          </span>
+          <a href={`/categoria/${catStyle.slug}`} class={`text-xs font-bold ${catStyle.text} ${catStyle.hoverText} uppercase tracking-wide`}>
+            {catStyle.name}
+          </a>
           <span class="text-neutral-300">•</span>
           <span class="text-[11px] text-neutral-500 font-medium">
             {noticia.autor || 'Redação'}
@@ -231,13 +233,13 @@ const catStyle = getCategoryStyle(categoriaNome);
           height="281"
         />
         <span class={`absolute top-3 left-3 ${catStyle.bg} text-white text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full tracking-wider z-10 pointer-events-none shadow-xs`}>
-          {categoriaNome}
+          {catStyle.name}
         </span>
       </a>
       <div class="p-4 sm:p-5">
-        <div class={`${catStyle.text} text-xs font-bold uppercase tracking-wide mb-1.5`}>
-          {categoriaNome}
-        </div>
+        <a href={`/categoria/${catStyle.slug}`} class={`${catStyle.text} ${catStyle.hoverText} text-xs font-bold uppercase tracking-wide mb-1.5 inline-block`}>
+          {catStyle.name}
+        </a>
         <h3 class={`text-base sm:text-lg font-bold leading-snug text-neutral-900 ${catStyle.hoverText} transition-colors line-clamp-2`}>
           <a href={`/noticia/${safeSlug}`} class="focus:outline-none">
             {safeTitle}

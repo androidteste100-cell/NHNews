@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS noticias (
     resumo TEXT NOT NULL,
     conteudo TEXT NOT NULL,
     categoria VARCHAR(100) NOT NULL,
+    category_slug VARCHAR(50),
     imagem TEXT NOT NULL,
     autor VARCHAR(100) DEFAULT 'Redação',
     publicado BOOLEAN DEFAULT true,
@@ -17,12 +18,16 @@ CREATE TABLE IF NOT EXISTS noticias (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 2. Índices de performance para consultas frequentes e SEO
+-- 2. Migração retrocompatível (caso a tabela já exista sem category_slug)
+ALTER TABLE noticias ADD COLUMN IF NOT EXISTS category_slug VARCHAR(50);
+
+-- 3. Índices de performance para consultas frequentes e SEO
 CREATE INDEX IF NOT EXISTS idx_slug ON noticias(slug);
 CREATE INDEX IF NOT EXISTS idx_categoria ON noticias(categoria);
+CREATE INDEX IF NOT EXISTS idx_category_slug ON noticias(category_slug);
 CREATE INDEX IF NOT EXISTS idx_created ON noticias(created_at DESC);
 
--- 3. Habilitação de Row Level Security (RLS)
+-- 4. Habilitação de Row Level Security (RLS)
 ALTER TABLE noticias ENABLE ROW LEVEL SECURITY;
 
 -- 4. Política de leitura pública para visitantes anônimos e autenticados
@@ -55,4 +60,13 @@ BEGIN
         WITH CHECK (true);
     END IF;
 END $$;
+
+-- 6. Backfill para unificação de Cultura, Lazer & Variedades
+UPDATE noticias 
+SET category_slug = 'cultura-lazer-variedades',
+    categoria = 'Cultura, Lazer & Variedades'
+WHERE category_slug IN ('cultura', 'lazer-variedades') 
+   OR categoria ILIKE '%cultura%' 
+   OR categoria ILIKE '%lazer%' 
+   OR categoria ILIKE '%variedade%';
 

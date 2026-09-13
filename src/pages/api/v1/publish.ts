@@ -1,18 +1,22 @@
 import type { APIRoute } from 'astro';
 import { createNoticia } from '../../../lib/supabase';
 import type { NoticiaInsert } from '../../../types/database.types';
+import { getCategoryStyle, OFFICIAL_CATEGORIES } from '../../../lib/categories';
 
 export const prerender = false;
 
-// Imagens padrão por categoria caso a automação não envie imagem
+// Imagens padrão por categoria oficial caso a automação não envie imagem
 const DEFAULT_IMAGES: Record<string, string> = {
-  tecnologia: 'https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1200&auto=format&fit=crop',
+  policia: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?q=80&w=1200&auto=format&fit=crop',
+  maceio: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1200&auto=format&fit=crop',
+  interior: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1200&auto=format&fit=crop',
+  politica: 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?q=80&w=1200&auto=format&fit=crop',
   economia: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?q=80&w=1200&auto=format&fit=crop',
-  mercados: 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=1200&auto=format&fit=crop',
-  ciencia: 'https://images.unsplash.com/photo-1507668077129-56e32842fceb?q=80&w=1200&auto=format&fit=crop',
-  ciência: 'https://images.unsplash.com/photo-1507668077129-56e32842fceb?q=80&w=1200&auto=format&fit=crop',
-  cidades: 'https://images.unsplash.com/photo-1477959858617-67f30bc75b82?q=80&w=1200&auto=format&fit=crop',
-  segurança: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?q=80&w=1200&auto=format&fit=crop',
+  esporte: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=1200&auto=format&fit=crop',
+  mundo: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200&auto=format&fit=crop',
+  'cultura-lazer-variedades': 'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?q=80&w=1200&auto=format&fit=crop',
+  cultura: 'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?q=80&w=1200&auto=format&fit=crop',
+  'lazer-variedades': 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?q=80&w=1200&auto=format&fit=crop',
   geral: 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?q=80&w=1200&auto=format&fit=crop',
 };
 
@@ -96,7 +100,7 @@ export const GET: APIRoute = async () => {
         titulo: 'Título da Notícia (Obrigatório)',
         resumo: 'Linha fina / Lead da matéria (Obrigatório)',
         conteudo: '<p>HTML do corpo da matéria...</p> (Obrigatório)',
-        categoria: 'Tecnologia | Economia | Mercados | Ciência | Cidades | Segurança (Obrigatório)',
+        categoria: 'Polícia | Maceió | Interior | Política | Economia | Esporte | Mundo | Cultura, Lazer & Variedades (ou slugs: policia, maceio, interior, politica, economia, esporte, mundo, cultura-lazer-variedades, cultura, lazer-variedades)',
         imagem: 'https://exemplo.com/foto.jpg (Opcional - usa padrão da categoria se omitido)',
         autor: 'Nome do Autor ou Redação / IA (Opcional - padrão: Redação Automática)',
         slug: 'slug-customizado (Opcional - gerado automaticamente com anti-duplicação)',
@@ -262,12 +266,13 @@ export const POST: APIRoute = async ({ request, url }) => {
       conteudo = '<p>Matéria em atualização constante pela equipe de reportagem.</p>';
     }
 
-    const catNorm = typeof rawCategoria === 'string' && rawCategoria.trim() ? rawCategoria.trim() : 'Geral';
+    const catStyle = getCategoryStyle(typeof rawCategoria === 'string' ? rawCategoria : 'policia');
+    const catNorm = catStyle.name;
+    const catSlug = catStyle.slug;
     
     // Se não forneceu imagem, usa imagem jornalística padrão da categoria
     if (!rawImagem || typeof rawImagem !== 'string' || !rawImagem.startsWith('http')) {
-      const catKey = catNorm.toLowerCase();
-      rawImagem = DEFAULT_IMAGES[catKey] || DEFAULT_IMAGES['geral'];
+      rawImagem = DEFAULT_IMAGES[catSlug] || DEFAULT_IMAGES['geral'];
     }
 
     // Geração segura de slug amigável (nunca vazio)
@@ -289,6 +294,7 @@ export const POST: APIRoute = async ({ request, url }) => {
       resumo: resumo.trim(),
       conteudo: conteudo.trim(),
       categoria: catNorm,
+      category_slug: catSlug,
       imagem: rawImagem.trim(),
       autor: typeof rawAutor === 'string' && rawAutor.trim() ? rawAutor.trim() : 'Redação Automática',
       publicado: publicado !== undefined ? Boolean(publicado) : true,

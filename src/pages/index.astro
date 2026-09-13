@@ -8,22 +8,22 @@ import Layout from '../layouts/Layout.astro';
 import NewsCard from '../components/NewsCard.astro';
 import AdBanner from '../components/AdBanner.astro';
 import { getRecentNoticias, getNoticiasByCategory, isSupabaseConnected, isSupabaseTableMissing } from '../lib/supabase';
-import { getCategoryStyle } from '../lib/categories';
+import { getCategoryStyle, OFFICIAL_CATEGORIES } from '../lib/categories';
 import type { NoticiaListItem } from '../types/database.types';
 
 // Execução SSR: busca das notícias mais recentes e por editoria diretamente do banco
 const [
   noticias,
-  noticiasEconomiaRaw,
-  noticiasTecnologiaRaw,
-  noticiasMercadosRaw,
-  noticiasCienciaRaw,
+  noticiasPoliciaRaw,
+  noticiasMaceioRaw,
+  noticiasPoliticaRaw,
+  noticiasInteriorRaw,
 ] = await Promise.all([
   getRecentNoticias(30),
-  getNoticiasByCategory('Economia', 6),
-  getNoticiasByCategory('Tecnologia', 6),
-  getNoticiasByCategory('Mercados', 6),
-  getNoticiasByCategory('Ciência', 6),
+  getNoticiasByCategory('policia', 6),
+  getNoticiasByCategory('maceio', 6),
+  getNoticiasByCategory('politica', 6),
+  getNoticiasByCategory('interior', 6),
 ]);
 
 // Divisão estrutural inspirada no Click Petróleo e Gás
@@ -41,17 +41,18 @@ const plantaoResumo = manchetePrincipal?.resumo || '';
 const plantaoSlug = (manchetePrincipal?.slug && manchetePrincipal.slug.trim().replace(/^\/+|\/+$/g, '')) || (manchetePrincipal?.id ? `noticia-${manchetePrincipal.id}` : 'recente');
 const plantaoImagem = (manchetePrincipal?.imagem && manchetePrincipal.imagem.trim()) || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?q=80&w=1200&auto=format&fit=crop';
 const plantaoCategoria = manchetePrincipal?.categoria || 'Geral';
-const plantaoStyle = getCategoryStyle(plantaoCategoria);
+const plantaoStyle = getCategoryStyle(plantaoCategoria, plantaoTitulo);
 
-// Montagem inteligente das 4 seções temáticas (Economia + 3 novos assuntos solicitados)
+// Montagem inteligente das 4 seções temáticas oficiais
 const usedThematicIds = new Set<string>();
 
 function getCategoryItems(
   rawList: NoticiaListItem[],
-  categoriaNome: string,
+  categoriaKey: string,
   fallbackList: NoticiaListItem[]
 ): NoticiaListItem[] {
   const selected: NoticiaListItem[] = [];
+  const targetKey = categoriaKey.toLowerCase();
 
   // 1. Prioridade: notícias da consulta da própria categoria
   for (const item of rawList || []) {
@@ -63,10 +64,12 @@ function getCategoryItems(
     if (selected.length === 3) break;
   }
 
-  // 2. Busca no conjunto geral por notícias da mesma categoria
+  // 2. Busca no conjunto geral por notícias da mesma categoria (slug ou texto)
   if (selected.length < 3) {
     for (const item of fallbackList) {
-      if (item.categoria?.toLowerCase() === categoriaNome.toLowerCase()) {
+      const itemCat = (item.categoria || '').toLowerCase();
+      const itemSlug = (item.category_slug || '').toLowerCase();
+      if (itemSlug === targetKey || itemCat === targetKey || itemCat.includes(targetKey)) {
         const key = item.id || item.slug;
         if (!usedThematicIds.has(key)) {
           selected.push(item);
@@ -94,35 +97,39 @@ function getCategoryItems(
 
 const secoesTematicas = [
   {
-    titulo: 'Economia & Inovação',
-    categoria: 'Economia',
-    href: '/categoria/Economia',
-    noticias: getCategoryItems(noticiasEconomiaRaw, 'Economia', noticias),
+    titulo: 'Polícia & Segurança',
+    categoria: 'Polícia',
+    slug: 'policia',
+    href: '/categoria/policia',
+    noticias: getCategoryItems(noticiasPoliciaRaw, 'policia', noticias),
   },
   {
-    titulo: 'Tecnologia & Inteligência Artificial',
-    categoria: 'Tecnologia',
-    href: '/categoria/Tecnologia',
-    noticias: getCategoryItems(noticiasTecnologiaRaw, 'Tecnologia', noticias),
+    titulo: 'Maceió & Região Metropolitana',
+    categoria: 'Maceió',
+    slug: 'maceio',
+    href: '/categoria/maceio',
+    noticias: getCategoryItems(noticiasMaceioRaw, 'maceio', noticias),
   },
   {
-    titulo: 'Mercados & Negócios',
-    categoria: 'Mercados',
-    href: '/categoria/Mercados',
-    noticias: getCategoryItems(noticiasMercadosRaw, 'Mercados', noticias),
+    titulo: 'Política & Poder',
+    categoria: 'Política',
+    slug: 'politica',
+    href: '/categoria/politica',
+    noticias: getCategoryItems(noticiasPoliticaRaw, 'politica', noticias),
   },
   {
-    titulo: 'Ciência & Sustentabilidade',
-    categoria: 'Ciência',
-    href: '/categoria/Ciência',
-    noticias: getCategoryItems(noticiasCienciaRaw, 'Ciência', noticias),
+    titulo: 'Interior',
+    categoria: 'Interior',
+    slug: 'interior',
+    href: '/categoria/interior',
+    noticias: getCategoryItems(noticiasInteriorRaw, 'interior', noticias),
   },
 ];
 ---
 
 <Layout
   title="Portal de Notícias — Informação e Cobertura em Tempo Real"
-  description="Portal de notícias com cobertura jornalística de tecnologia, economia, mercados, ciência, inovação e sustentabilidade."
+  description="Portal de notícias com cobertura jornalística completa: Polícia, Maceió, Interior, Política, Economia, Esporte, Mundo, Cultura, Lazer & Variedades."
 >
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
     
@@ -143,7 +150,7 @@ const secoesTematicas = [
               PLANTÃO 24H
             </span>
             <span class={`text-[11px] font-bold uppercase ${plantaoStyle.bg} text-white px-2.5 py-1 rounded-full shadow-xs tracking-wider`}>
-              {plantaoCategoria}
+              {plantaoStyle.name}
             </span>
           </div>
           <div class="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600">
@@ -219,7 +226,7 @@ const secoesTematicas = [
           </a>
           <div class="min-w-0 flex-1">
             <div class={`text-[10px] font-bold uppercase ${plantaoStyle.text} tracking-wide mb-0.5`}>
-              {plantaoCategoria}
+              {plantaoStyle.name}
             </div>
             <a 
               href={`/noticia/${plantaoSlug}`} 
@@ -269,6 +276,24 @@ const secoesTematicas = [
         </span>
       </div>
     )}
+
+    {/* =========================================================================
+        BARRA DAS 9 CATEGORIAS OFICIAIS COM ÍCONES COLORIDOS
+    ========================================================================= */}
+    <nav class="mb-6 overflow-x-auto pb-1 scrollbar-none" aria-label="Editorias Oficiais do Portal">
+      <div class="flex items-center gap-2 min-w-max">
+        <span class="text-[10px] font-mono font-bold uppercase text-neutral-400 mr-1 hidden sm:inline-block">Editorias:</span>
+        {OFFICIAL_CATEGORIES.map((cat) => (
+          <a
+            href={`/categoria/${cat.slug}`}
+            class={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-neutral-200 hover:border-neutral-400 text-neutral-800 text-xs font-bold uppercase tracking-wider shadow-2xs hover:shadow-xs transition-all group`}
+          >
+            <span class={`w-2 h-2 rounded-full ${cat.bg} group-hover:scale-125 transition-transform shadow-2xs`}></span>
+            <span>{cat.name}</span>
+          </a>
+        ))}
+      </div>
+    </nav>
 
     {manchetePrincipal ? (
       <>

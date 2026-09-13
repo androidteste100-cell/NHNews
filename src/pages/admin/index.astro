@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { isAdminAuthenticated } from '../../lib/adminAuth';
+import { OFFICIAL_CATEGORIES, getCategoryStyle } from '../../lib/categories';
 import {
   getAllNoticiasAdmin,
   isSupabaseConnected,
@@ -204,8 +205,8 @@ const tableMissing = isSupabaseTableMissing();
           </div>
 
           <div class="bg-white dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 p-4 rounded-xl">
-            <span class="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Categorias Ativas</span>
-            <div class="text-3xl font-black text-blue-600 dark:text-blue-400 mt-1 font-mono">{categorias.length}</div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Categorias Oficiais</span>
+            <div class="text-3xl font-black text-blue-600 dark:text-blue-400 mt-1 font-mono">{OFFICIAL_CATEGORIES.length}</div>
           </div>
         </div>
 
@@ -227,9 +228,9 @@ const tableMissing = isSupabaseTableMissing();
               id="category-filter"
               class="px-3 py-2 text-xs bg-gray-50 dark:bg-neutral-800 border-2 border-gray-300 dark:border-neutral-700 rounded-lg focus:outline-none focus:border-black dark:focus:border-white text-neutral-900 dark:text-white font-bold uppercase"
             >
-              <option value="">Todas as Categorias</option>
-              {categorias.map((cat) => (
-                <option value={cat}>{cat}</option>
+              <option value="">Todas as 9 Categorias</option>
+              {OFFICIAL_CATEGORIES.map((cat) => (
+                <option value={cat.slug}>{cat.name}</option>
               ))}
             </select>
 
@@ -271,7 +272,7 @@ const tableMissing = isSupabaseTableMissing();
               </thead>
               <tbody class="divide-y divide-gray-200 dark:divide-neutral-800 text-xs" id="table-body">
                 {noticias.map((item) => (
-                  <tr class="noticia-row hover:bg-gray-50 dark:hover:bg-neutral-800/40 transition-colors" data-id={item.id} data-categoria={item.categoria} data-publicado={item.publicado ? 'publicado' : 'rascunho'} data-titulo={item.titulo.toLowerCase()} data-autor={(item.autor || '').toLowerCase()}>
+                  <tr class="noticia-row hover:bg-gray-50 dark:hover:bg-neutral-800/40 transition-colors" data-id={item.id} data-categoria={item.categoria} data-category-slug={item.category_slug || ''} data-publicado={item.publicado ? 'publicado' : 'rascunho'} data-titulo={item.titulo.toLowerCase()} data-autor={(item.autor || '').toLowerCase()}>
                     <td class="py-3 px-4 w-16">
                       <div class="w-12 h-9 rounded bg-neutral-200 dark:bg-neutral-700 overflow-hidden border border-black dark:border-neutral-600 shrink-0">
                         <img src={item.imagem} alt="" class="w-full h-full object-cover" loading="lazy" />
@@ -287,7 +288,7 @@ const tableMissing = isSupabaseTableMissing();
                     </td>
                     <td class="py-3 px-4">
                       <span class="inline-block bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 text-neutral-800 dark:text-neutral-200 text-[10px] font-black uppercase px-2 py-0.5 rounded">
-                        {item.categoria}
+                        {getCategoryStyle(item.categoria, item.titulo).name}
                       </span>
                     </td>
                     <td class="py-3 px-4 text-gray-600 dark:text-neutral-300 whitespace-nowrap">
@@ -417,26 +418,19 @@ const tableMissing = isSupabaseTableMissing();
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label for="form-categoria" class="block text-xs font-bold uppercase tracking-wider text-neutral-800 dark:text-neutral-200 mb-1">
-              Categoria *
+              Categoria Oficial *
             </label>
-            <input
-              type="text"
+            <select
               id="form-categoria"
               name="categoria"
               required
-              list="categorias-list"
-              placeholder="Ex: Tecnologia"
               class="w-full px-3 py-2 text-xs bg-gray-50 dark:bg-neutral-800 border-2 border-gray-300 dark:border-neutral-700 rounded-lg focus:outline-none focus:border-blue-600 font-bold uppercase text-neutral-900 dark:text-white"
-            />
-            <datalist id="categorias-list">
-              <option value="Tecnologia" />
-              <option value="Economia" />
-              <option value="Mercados" />
-              <option value="Ciência" />
-              <option value="Cidades" />
-              <option value="Segurança" />
-              <option value="Geral" />
-            </datalist>
+            >
+              <option value="" disabled selected>Selecione a Categoria</option>
+              {OFFICIAL_CATEGORIES.map((cat) => (
+                <option value={cat.name}>{cat.name}</option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -947,10 +941,11 @@ git push -u origin main</pre>
       const rowTitulo = row.getAttribute('data-titulo') || '';
       const rowAutor = row.getAttribute('data-autor') || '';
       const rowCat = (row.getAttribute('data-categoria') || '').toLowerCase();
+      const rowCatSlug = (row.getAttribute('data-category-slug') || '').toLowerCase();
       const rowStatus = (row.getAttribute('data-publicado') || '').toLowerCase();
 
       const matchQuery = !query || rowTitulo.includes(query) || rowAutor.includes(query);
-      const matchCat = !cat || rowCat === cat;
+      const matchCat = !cat || rowCat === cat || rowCatSlug === cat || rowCat.includes(cat);
       const matchStatus = !status || rowStatus === status;
 
       if (matchQuery && matchCat && matchStatus) {
@@ -1197,7 +1192,25 @@ git push -u origin main</pre>
       formId.value = id;
       formTitulo.value = titulo || '';
       formSlug.value = slugText || '';
-      formCategoria.value = categoria;
+      
+      // Localiza a opção correta no select de categorias oficiais
+      const catSelect = formCategoria as HTMLSelectElement;
+      let matched = false;
+      for (let i = 0; i < catSelect.options.length; i++) {
+        const opt = catSelect.options[i];
+        if (
+          opt.value.toLowerCase() === categoria.toLowerCase() ||
+          opt.text.toLowerCase() === categoria.toLowerCase()
+        ) {
+          catSelect.selectedIndex = i;
+          matched = true;
+          break;
+        }
+      }
+      if (!matched && catSelect.options.length > 0) {
+        catSelect.value = categoria;
+      }
+
       formAutor.value = autor || 'Redação';
       formPublicado.checked = isPublicado;
       formImagem.value = imgUrl;

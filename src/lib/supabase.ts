@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import type { Database, Noticia, NoticiaListItem, NoticiaDetail, NoticiaInsert, NoticiaUpdate } from '../types/database.types';
+import type { Database, Noticia, NoticiaListItem, NoticiaDetail, NoticiaInsert, NoticiaUpdate, CategorySlug } from '../types/database.types';
+import { getCategoryStyle, normalizeCategorySlug } from './categories';
 
 // Variáveis de ambiente públicas do Supabase (Astro e Next.js aliases suportados)
 const rawSupabaseUrl =
@@ -82,204 +83,240 @@ function isApiKeyError(error: any): boolean {
 const MOCK_NOTICIAS: Noticia[] = [
   {
     id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-    titulo: 'Inteligência Artificial revoluciona diagnósticos médicos no Brasil com precisão recorde',
-    slug: 'inteligencia-artificial-revoluciona-diagnosticos-medicos-brasil',
-    resumo: 'Algoritmos validados por hospitais de referência antecipam detecção de patologias complexas em até dois anos com índices de precisão superiores a 96%.',
+    titulo: 'Operação integrada das forças de segurança desarticula rede interestadual de estelionato digital',
+    slug: 'operacao-seguranca-desarticula-rede-estelionato-digital',
+    resumo: 'Investigação coordenada cumpre dezenas de mandados com apreensão de equipamentos e bloqueio de contas utilizadas em golpes financeiros.',
     conteudo: `
-      <p class="lead">Uma nova geração de ferramentas de inteligência artificial aplicada à medicina diagnóstica está transformando a rotina de centros de saúde em todo o país. Especialistas apontam ganhos substanciais em agilidade e precisão clínica.</p>
+      <p class="lead">Uma megaoperação deflagrada na manhã de hoje mobilizou policiais civis e militares no combate a uma organização criminosa especializada em fraudes bancárias eletrônicas.</p>
       
-      <p>Desenvolvidos em cooperação entre universidades públicas e centros de inovação tecnológica, os novos modelos de aprendizado profundo foram treinados em centenas de milhares de exames anonimizados de ressonância magnética, tomografia computadorizada e biópsias de tecidos.</p>
+      <p>As apurações preliminares revelaram que o esquema desviava recursos através de páginas clonadas de instituições de crédito e falsas centrais telefônicas. Foram cumpridos mandados de busca, apreensão e prisões preventivas.</p>
       
       <!-- AD_SLOT_1 -->
 
-      <h2>Como funciona a detecção antecipada</h2>
-      <p>A tecnologia atua analisando microvariações na textura celular e nos gradientes de densidade que muitas vezes escapam ao olho humano na fase assintomática inicial. Uma vez identificado o padrão de risco, o sistema emite um alerta priorizado para a equipe de radiologia e oncologia.</p>
+      <h2>Estratégia de investigação cibernética</h2>
+      <p>O setor de inteligência policial rastreou os fluxos de dados e as carteiras virtuais de criptoativos para mapear a hierarquia financeira do grupo. O delegado responsável destacou a integração entre os órgãos estaduais como fator decisivo para o sucesso da ação.</p>
       
       <blockquote>
-        "Não se trata de substituir o médico, mas de conferir superpoderes cognitivos ao profissional de saúde, reduzindo a fadiga e eliminando pontos cegos", explica a Dra. Helena Meirelles, coordenadora da pesquisa.
+        "O cerco ao crime organizado digital exige tecnologia de ponta e resposta rápida para garantir a proteção do cidadão e do comércio", enfatizou a autoridade policial.
       </blockquote>
 
       <!-- AD_SLOT_2 -->
 
-      <h2>Impacto direto no Sistema de Saúde</h2>
-      <p>A antecipação no diagnóstico reflete diretamente nas chances de cura e na economia de recursos hospitalares. Pacientes diagnosticados em estágio precoce respondem a tratamentos consideravelmente menos invasivos e com taxas de sobrevida até 70% maiores.</p>
-      
-      <p>A meta dos desenvolvedores é expandir a implementação do sistema para 500 postos de saúde da rede pública até o primeiro semestre do próximo ano.</p>
+      <h2>Ações preventivas e canais de denúncia</h2>
+      <p>A corporação orienta a população a verificar a autenticidade de links e canais de contato antes de fornecer dados bancários, disponibilizando linhas diretas para registro de ocorrências.</p>
 
       <!-- AD_SLOT_FOOTER -->
     `,
-    categoria: 'Tecnologia',
-    imagem: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?q=80&w=1200&auto=format&fit=crop',
-    autor: 'Lucas Brandão',
+    categoria: 'Polícia',
+    category_slug: 'policia',
+    imagem: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=1200&auto=format&fit=crop',
+    autor: 'Redação Policial',
+    publicado: true,
+    created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+    updated_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+  },
+  {
+    id: 'e12bc30a-28dc-4372-b567-0e02b2c3d480',
+    titulo: 'Orla de Maceió recebe plano de modernização urbana com ciclovias ampliadas e tecnologia',
+    slug: 'orla-maceio-plano-modernizacao-urbana-ciclovias',
+    resumo: 'Intervenções abrangem sinalização inteligente, nova iluminação em LED e valorização dos espaços de convivência da orla marítima.',
+    conteudo: `
+      <p>A orla marítima de Maceió, referência em beleza natural e turismo nacional, passa por uma ampla revitalização com foco em sustentabilidade e mobilidade ativa.</p>
+      
+      <!-- AD_SLOT_1 -->
+      
+      <p>O projeto contempla a ampliação de ciclovias integradas, instalação de postos de salvamento modernizados e novo paisagismo com espécies nativas da flora litorânea.</p>
+      
+      <h2>Impacto para o turismo e moradores</h2>
+      <p>Além de fomentar a economia criativa e os quiosques gastronômicos, as melhorias ampliam a segurança com monitoramento por câmeras de alta definição conectadas à central urbana.</p>
+      
+      <!-- AD_SLOT_2 -->
+
+      <!-- AD_SLOT_FOOTER -->
+    `,
+    categoria: 'Maceió',
+    category_slug: 'maceio',
+    imagem: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1200&auto=format&fit=crop',
+    autor: 'Mariana Duarte',
     publicado: true,
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
     updated_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
   },
   {
-    id: 'e12bc30a-28dc-4372-b567-0e02b2c3d480',
-    titulo: 'Transição energética avança com recorde histórico na geração de energia solar e eólica',
-    slug: 'transicao-energetica-recorde-geracao-solar-eolica',
-    resumo: 'Fontes renováveis ultrapassam marca inédita da matriz energética nacional, impulsionando novos investimentos em baterias industriais.',
-    conteudo: `
-      <p>O setor elétrico registrou um marco histórico no último mês, quando a soma das matrizes eólica e fotovoltaica foi responsável por suprir mais da metade do consumo diário do sistema interligado em horários de pico.</p>
-      
-      <!-- AD_SLOT_1 -->
-      
-      <p>O investimento privado em fazendas solares e parques eólicos no Nordeste e no Sul do país acelerou a substituição gradual de usinas termelétricas, resultando na redução drástica de emissões de carbono.</p>
-      
-      <h2>Desafios de armazenamento e infraestrutura</h2>
-      <p>Com a intermitência natural das fontes limpas, consórcios globais iniciaram a instalação de megabaterias de íons de lítio e sódio para equilibrar a rede durante a noite e períodos de calmaria.</p>
-      
-      <!-- AD_SLOT_2 -->
-
-      <!-- AD_SLOT_FOOTER -->
-    `,
-    categoria: 'Economia',
-    imagem: 'https://images.unsplash.com/photo-1509391365360-2e959784a276?q=80&w=1200&auto=format&fit=crop',
-    autor: 'Juliana Vasconcelos',
-    publicado: true,
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-    updated_at: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-  },
-  {
     id: 'a98cc40b-78ee-4372-c567-0e02b2c3d481',
-    titulo: 'Mercado de capitais registra entrada expressiva de investidores estrangeiros na B3',
-    slug: 'mercado-capitais-entrada-investidores-estrangeiros-b3',
-    resumo: 'Fluxo positivo de capital internacional reflete estabilização da taxa de juros e boas perspectivas fiscais para o segundo semestre.',
+    titulo: 'Obras de saneamento e infraestrutura hídrica avançam em 15 municípios do interior',
+    slug: 'obras-saneamento-infraestrutura-hidrica-interior',
+    resumo: 'Investimentos estruturantes levam água tratada e pavimentação a comunidades rurais e centros urbanos do Agreste e Sertão.',
     conteudo: `
-      <p>O fluxo de recursos externos na bolsa de valores brasileira alcançou o maior patamar do ano, impulsionado pela procura por ativos de valor e empresas ligadas a commodities e tecnologia financeira.</p>
+      <p>As frentes de trabalho para universalização do saneamento e ampliação de adutoras ganharam ritmo acelerado em diversas regiões do interior do estado.</p>
       
       <!-- AD_SLOT_1 -->
 
-      <p>Analistas destacam que a convergência da inflação para o centro da meta foi o principal catalisador para a reavaliação de risco soberano por parte das agências internacionais de classificação.</p>
+      <p>O cronograma prevê a entrega de reservatórios centrais, estações de tratamento de esgoto e recuperação de vias vicinais essenciais para o escoamento da produção agrícola familiar.</p>
       
       <!-- AD_SLOT_2 -->
       <!-- AD_SLOT_FOOTER -->
     `,
-    categoria: 'Mercados',
-    imagem: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?q=80&w=1200&auto=format&fit=crop',
+    categoria: 'Interior',
+    category_slug: 'interior',
+    imagem: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1200&auto=format&fit=crop',
     autor: 'Carlos Eduardo Neves',
     publicado: true,
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
-    updated_at: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(),
+    updated_at: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(),
   },
   {
     id: 'b76aa20b-34cc-4372-d567-0e02b2c3d482',
-    titulo: 'Exploração espacial: telescópios descobrem vapor d’água em atmosfera de exoplaneta rochoso',
-    slug: 'exploracao-espacial-vapor-agua-atmosfera-exoplaneta',
-    resumo: 'Dados colhidos pelo observatório orbital revelam composição química compatível com oceanos primitivos em planeta a 70 anos-luz.',
+    titulo: 'Assembleia Legislativa aprova projeto de incentivo ao microcrédito e inovação produtiva',
+    slug: 'assembleia-legislativa-aprova-projeto-incentivo-microcredito',
+    resumo: 'Proposta estabelece desonerações tributárias e linhas de crédito facilitadas para pequenos e médios empreendedores locais.',
     conteudo: `
-      <p>Astrônomos confirmaram a presença de moléculas de água em estado de vapor na atmosfera de um exoplaneta rochoso situado na zona habitável de sua estrela hospedeira.</p>
+      <p>Os parlamentares aprovaram por unanimidade o pacote econômico que fomenta novas empresas, startups e cooperativas de desenvolvimento regional.</p>
       
       <!-- AD_SLOT_1 -->
 
-      <p>A descoberta representa um dos passos mais significativos na busca por ambientes extraterrestres capazes de abrigar vida biológica ou processos pré-bióticos.</p>
+      <p>A medida prevê ainda a criação de fundos garantidores para jovens empreendedores e incentivos fiscais para polos industriais do interior e da região metropolitana.</p>
       
       <!-- AD_SLOT_2 -->
       <!-- AD_SLOT_FOOTER -->
     `,
-    categoria: 'Ciência',
-    imagem: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200&auto=format&fit=crop',
-    autor: 'Redação Científica',
+    categoria: 'Política',
+    category_slug: 'politica',
+    imagem: 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?q=80&w=1200&auto=format&fit=crop',
+    autor: 'Paulo Nogueira',
     publicado: true,
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-    updated_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
+    updated_at: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
   },
   {
     id: 'c45dd10a-89aa-4372-e567-0e02b2c3d483',
-    titulo: 'Cidades inteligentes investem em sensores IoT para otimizar tráfego e drenagem pluvial',
-    slug: 'cidades-inteligentes-sensores-iot-trafego-drenagem',
-    resumo: 'Capitais adotam monitoramento em tempo real com conectividade 5G para prever alagamentos e sincronizar semáforos conforme fluxo.',
+    titulo: 'Transição energética e agronegócio impulsionam crescimento do PIB no segundo trimestre',
+    slug: 'transicao-energetica-recorde-geracao-solar-eolica',
+    resumo: 'Geração de energia solar, exportação de grãos e turismo batem recordes históricos de faturamento e geração de vagas com carteira assinada.',
     conteudo: `
-      <p>A gestão urbana baseada em dados em tempo real passa a ser a nova regra para prevenir congestionamentos crônicos e antecipar respostas a eventos climáticos extremos.</p>
+      <p>O setor produtivo registrou expansão consistente, impulsionado pela entrada em operação de novos parques solares e investimentos em logística de exportação.</p>
       
       <!-- AD_SLOT_1 -->
       
-      <p>Sensores acústicos e hidrológicos instalados em galerias subterrâneas alimentam centros de operações que acionam comportas e desvios de forma autônoma.</p>
+      <p>Analistas econômicos destacam a consolidação de projetos sustentáveis como o principal atrativo para capitais institucionais e investidores privados internacionais.</p>
       
       <!-- AD_SLOT_2 -->
       <!-- AD_SLOT_FOOTER -->
     `,
-    categoria: 'Cidades',
-    imagem: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1200&auto=format&fit=crop',
-    autor: 'Mariana Duarte',
-    publicado: true,
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 36).toISOString(),
-    updated_at: new Date(Date.now() - 1000 * 60 * 60 * 36).toISOString(),
-  },
-  {
-    id: 'd32ee90b-11bb-4372-f567-0e02b2c3d484',
-    titulo: 'Cibersegurança corporativa: nova regulamentação exige auditoria contínua e reporte rápido',
-    slug: 'ciberseguranca-corporativa-nova-regulamentacao-auditoria',
-    resumo: 'Diretrizes determinam comunicação imediata em caso de incidentes e uso de criptografia quântica-resistente para dados sensíveis.',
-    conteudo: `
-      <p>Empresas que operam infraestruturas críticas e grandes volumes de dados pessoais deverão comprovar rotinas ininterruptas de testes de penetração e governança cibernética.</p>
-      
-      <!-- AD_SLOT_1 -->
-      
-      <p>As novas regras alinham a regulamentação local aos mais rigorosos padrões da União Europeia e dos Estados Unidos, visando blindar a economia contra ataques de ransomware.</p>
-      
-      <!-- AD_SLOT_2 -->
-      <!-- AD_SLOT_FOOTER -->
-    `,
-    categoria: 'Segurança',
-    imagem: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=1200&auto=format&fit=crop',
-    autor: 'Lucas Brandão',
-    publicado: true,
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
-    updated_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
-  },
-  {
-    id: 'a91ff20c-33dd-4172-e123-0e02b2c3d485',
-    titulo: 'Indústria nacional acelera investimentos em automação pesada e produção sustentável',
-    slug: 'industria-nacional-investimentos-automacao-sustentabilidade',
-    resumo: 'Fábricas brasileiras modernizam linhas de montagem com robótica avançada e redução histórica no consumo hídrico e energético.',
-    conteudo: '<p>A modernização do parque industrial nacional atinge novos patamares de eficiência com a implementação de robôs colaborativos e inteligência industrial.</p>',
     categoria: 'Economia',
-    imagem: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=1200&auto=format&fit=crop',
-    autor: 'Paulo Nogueira',
-    publicado: true,
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-    updated_at: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-  },
-  {
-    id: 'b82ee30d-44ee-4272-f234-0e02b2c3d486',
-    titulo: 'Vagas no setor de tecnologia e infraestrutura crescem 28% no terceiro trimestre',
-    slug: 'vagas-setor-tecnologia-infraestrutura-crescimento-trimestre',
-    resumo: 'Levantamento revela alta demanda por engenheiros de dados, especialistas em energias renováveis e técnicos especializados.',
-    conteudo: '<p>O mercado de trabalho para setores estratégicos continua aquecido, impulsionado por grandes aportes em conectividade e infraestrutura limpa.</p>',
-    categoria: 'Mercados',
-    imagem: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?q=80&w=1200&auto=format&fit=crop',
-    autor: 'Camila Silveira',
+    category_slug: 'economia',
+    imagem: 'https://images.unsplash.com/photo-1509391365360-2e959784a276?q=80&w=1200&auto=format&fit=crop',
+    autor: 'Juliana Vasconcelos',
     publicado: true,
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
     updated_at: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
   },
   {
-    id: 'c73dd40e-55ff-4372-a345-0e02b2c3d487',
-    titulo: 'Cientistas desenvolvem novo supercondutor que opera em condições menos extremas',
-    slug: 'cientistas-supercondutor-condicoes-menos-extremas',
-    resumo: 'Descoberta promete revolucionar a transmissão de eletricidade sem perdas e baratear a tecnologia de trens magnéticos.',
-    conteudo: '<p>Equipe internacional de pesquisadores apresenta material composto capaz de conduzir eletricidade com resistência zero a temperaturas significativamente mais acessíveis.</p>',
-    categoria: 'Ciência',
-    imagem: 'https://images.unsplash.com/photo-1507668077129-56e32842fceb?q=80&w=1200&auto=format&fit=crop',
-    autor: 'Dra. Helena Meirelles',
+    id: 'd32ee90b-11bb-4372-f567-0e02b2c3d484',
+    titulo: 'Futebol alagoano: rodada decisiva define classificados para a grande final do campeonato',
+    slug: 'futebol-alagoano-rodada-decisiva-final-campeonato',
+    resumo: 'Estádios lotados e disputas emocionantes marcam as semifinais com grande presença das torcidas organizadas e cobertura completa.',
+    conteudo: `
+      <p>O fim de semana foi de fortes emoções nos gramados com a definição dos finalistas que disputarão a taça estadual e as vagas em torneios nacionais.</p>
+      
+      <!-- AD_SLOT_1 -->
+      
+      <p>Os técnicos avaliaram o desempenho tático e físico das equipes, projetando confrontos disputados lance a lance na decisão pelo título da temporada.</p>
+      
+      <!-- AD_SLOT_2 -->
+      <!-- AD_SLOT_FOOTER -->
+    `,
+    categoria: 'Esporte',
+    category_slug: 'esporte',
+    imagem: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=1200&auto=format&fit=crop',
+    autor: 'Roberto Alencar',
+    publicado: true,
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 10).toISOString(),
+    updated_at: new Date(Date.now() - 1000 * 60 * 60 * 10).toISOString(),
+  },
+  {
+    id: 'a91ff20c-33dd-4172-e123-0e02b2c3d485',
+    titulo: 'Cúpula internacional do clima firma compromissos globais para preservação dos oceanos',
+    slug: 'cupula-internacional-clima-compromissos-oceanos',
+    resumo: 'Mais de 80 países acordam diretrizes vinculantes para erradicação de plásticos marítimos e proteção a recifes de corais.',
+    conteudo: '<p>Líderes mundiais reunidos na conferência ambiental ratificaram tratados multilaterais voltados ao financiamento climático e à recuperação dos ecossistemas costeiros em escala planetária.</p>',
+    categoria: 'Mundo',
+    category_slug: 'mundo',
+    imagem: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200&auto=format&fit=crop',
+    autor: 'Lucas Brandão',
     publicado: true,
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
     updated_at: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
   },
   {
-    id: 'd64cc50f-66aa-4472-b456-0e02b2c3d488',
-    titulo: 'Mobilidade urbana: cidades brasileiras testam frotas 100% elétricas para transporte coletivo',
-    slug: 'mobilidade-urbana-frotas-eletricas-transporte-coletivo',
-    resumo: 'Ônibus elétricos com recarga ultrarrápida entram em operação piloto reduzindo ruído e emissões em corredores metropolitanos.',
-    conteudo: '<p>Capitais iniciam a substituição progressiva de veículos a diesel por modelos elétricos com autonomia para turnos completos de circulação.</p>',
-    categoria: 'Cidades',
-    imagem: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?q=80&w=1200&auto=format&fit=crop',
-    autor: 'Roberto Alencar',
+    id: 'b82ee30d-44ee-4272-f234-0e02b2c3d486',
+    titulo: 'Festival de Arte e Tradições Populares reúne mestres da cultura em mostra histórica',
+    slug: 'festival-arte-tradicoes-populares-mostra-historica',
+    resumo: 'Apresentações de folguedos, mostras de cinema documental e feira de artesanato atraem pesquisadores e público de todo o país.',
+    conteudo: '<p>A celebração da identidade cultural e da memória viva reuniu dezenas de grupos tradicionais com oficinas interativas e espetáculos abertos ao público em praça histórica.</p>',
+    categoria: 'Cultura, Lazer & Variedades',
+    category_slug: 'cultura-lazer-variedades',
+    imagem: 'https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212?q=80&w=1200&auto=format&fit=crop',
+    autor: 'Camila Silveira',
     publicado: true,
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 18).toISOString(),
-    updated_at: new Date(Date.now() - 1000 * 60 * 60 * 18).toISOString(),
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 14).toISOString(),
+    updated_at: new Date(Date.now() - 1000 * 60 * 60 * 14).toISOString(),
+  },
+  {
+    id: 'c73dd40e-55ff-4372-a345-0e02b2c3d487',
+    titulo: 'Roteiro de fim de semana: gastronomia praiana, feiras criativas e passeios de ecoturismo',
+    slug: 'roteiro-fim-semana-gastronomia-feiras-ecoturismo',
+    resumo: 'Confira as melhores opções de lazer, restaurantes estrelados, passeios de catamarã e eventos culturais para toda a família.',
+    conteudo: '<p>Com a chegada do fim de semana, selecionamos os destaques do cenário gastronômico e de entretenimento com opções imperdíveis para relaxar e aproveitar o litoral e as lagoas.</p>',
+    categoria: 'Cultura, Lazer & Variedades',
+    category_slug: 'cultura-lazer-variedades',
+    imagem: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200&auto=format&fit=crop',
+    autor: 'Redação Variedades',
+    publicado: true,
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 16).toISOString(),
+    updated_at: new Date(Date.now() - 1000 * 60 * 60 * 16).toISOString(),
+  },
+  {
+    id: 'd64cc50f-66aa-4472-b456-0e02b2c3d488',
+    titulo: 'Polícia Rodoviária intensifica fiscalização preventiva e tecnologia nas rodovias',
+    slug: 'policia-rodoviaria-intensifica-fiscalizacao-rodovias',
+    resumo: 'Radares móveis e etilômetros de última geração reforçam a segurança nos principais corredores de acesso e entroncamentos.',
+    conteudo: '<p>Ações coordenadas de patrulhamento tático resultaram na redução de acidentes e no combate contínuo ao transporte clandestino e ao tráfico de ilícitos.</p>',
+    categoria: 'Polícia',
+    category_slug: 'policia',
+    imagem: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=1200&auto=format&fit=crop',
+    autor: 'Redação Policial',
+    publicado: true,
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 20).toISOString(),
+    updated_at: new Date(Date.now() - 1000 * 60 * 60 * 20).toISOString(),
+  },
+  {
+    id: 'e75dd60a-77bb-4572-c567-0e02b2c3d489',
+    titulo: 'Maceió é eleita um dos destinos turísticos mais procurados do Nordeste brasileiro',
+    slug: 'maceio-eleita-destino-turistico-mais-procurado',
+    resumo: 'Pesquisa da hotelaria aponta taxa de ocupação superior a 90% e consolidação de eventos gastronômicos internacionais na orla.',
+    conteudo: '<p>O reconhecimento turístico reflete os investimentos contínuos na infraestrutura urbana, limpeza pública exemplar e promoção dos atrativos naturais em feiras mundiais de turismo.</p>',
+    categoria: 'Maceió',
+    category_slug: 'maceio',
+    imagem: 'https://images.unsplash.com/photo-1590523741831-ab7e8b8f9c7f?q=80&w=1200&auto=format&fit=crop',
+    autor: 'Mariana Duarte',
+    publicado: true,
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+    updated_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+  },
+  {
+    id: 'f86ee70b-88cc-4672-d678-0e02b2c3d490',
+    titulo: 'Exportações do agronegócio e cooperativas do interior crescem 18% no semestre',
+    slug: 'exportacoes-agronegocio-cooperativas-interior-crescem',
+    resumo: 'Cooperativas de cana, laticínios e fruticultura irrigada consolidam novos mercados na Europa e Ásia.',
+    conteudo: '<p>A valorização da agricultura familiar e a modernização dos processos de embalagem e conservação garantem novos patamares de produtividade e rentabilidade no campo.</p>',
+    categoria: 'Economia',
+    category_slug: 'economia',
+    imagem: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=1200&auto=format&fit=crop',
+    autor: 'Carlos Eduardo Neves',
+    publicado: true,
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 28).toISOString(),
+    updated_at: new Date(Date.now() - 1000 * 60 * 60 * 28).toISOString(),
   },
 ];
 
@@ -500,36 +537,70 @@ export async function getNoticiaBySlug(slug: string): Promise<NoticiaDetail | nu
 }
 
 /**
- * Busca notícias por categoria.
+ * Busca notícias por categoria utilizando filtro exato pela coluna category_slug no Supabase.
  */
-export async function getNoticiasByCategory(categoria: string, limit = 12): Promise<NoticiaListItem[]> {
+export async function getNoticiasByCategory(categoriaOrSlug: string, limit = 12): Promise<NoticiaListItem[]> {
+  const catInfo = getCategoryStyle(categoriaOrSlug);
+  const targetSlug = catInfo.slug;
+  const targetName = catInfo.name;
+
+  const matchingSlugs: CategorySlug[] =
+    targetSlug === 'cultura-lazer-variedades'
+      ? ['cultura-lazer-variedades', 'cultura', 'lazer-variedades']
+      : [targetSlug];
+
   if (!isConfigured) {
     return mockNoticiasList
-      .filter((n) => n.categoria.toLowerCase() === categoria.toLowerCase() && n.publicado)
+      .filter((n) => {
+        const itemSlug = n.category_slug || normalizeCategorySlug(n.categoria, n.titulo);
+        return matchingSlugs.includes(itemSlug) && n.publicado;
+      })
       .slice(0, limit);
   }
 
   const primaryClient = getReadClient();
   try {
+    // 1. Tenta consulta exata pela coluna category_slug no Supabase (Diretriz 4)
     let { data, error } = await primaryClient
       .from('noticias')
-      .select('id, titulo, slug, resumo, categoria, imagem, created_at, autor, publicado')
-      .ilike('categoria', categoria)
+      .select('id, titulo, slug, resumo, categoria, category_slug, imagem, created_at, autor, publicado')
+      .in('category_slug', matchingSlugs)
       .or('publicado.eq.true,publicado.is.null')
       .order('created_at', { ascending: false })
       .limit(limit);
+
+    // 2. Se a coluna category_slug não existir no Supabase ou não retornar itens, tenta compatibilidade por categoria textual
+    if (error || !data || data.length === 0) {
+      const textFilter =
+        targetSlug === 'cultura-lazer-variedades'
+          ? 'categoria.ilike.%cultura%,categoria.ilike.%lazer%,categoria.ilike.%variedade%'
+          : `categoria.ilike.%${targetName}%,categoria.ilike.%${targetSlug}%`;
+
+      const fallbackAttempt = await primaryClient
+        .from('noticias')
+        .select('id, titulo, slug, resumo, categoria, imagem, created_at, autor, publicado')
+        .or(textFilter)
+        .or('publicado.eq.true,publicado.is.null')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (!fallbackAttempt.error && fallbackAttempt.data && fallbackAttempt.data.length > 0) {
+        data = fallbackAttempt.data as any;
+        error = null;
+      }
+    }
 
     if (error) {
       const fallbackClient = primaryClient === supabaseAdmin ? supabase : (supabaseServiceKey ? supabaseAdmin : null);
       if (fallbackClient) {
         const retry = await fallbackClient
           .from('noticias')
-          .select('id, titulo, slug, resumo, categoria, imagem, created_at, autor, publicado')
-          .ilike('categoria', categoria)
+          .select('id, titulo, slug, resumo, categoria, category_slug, imagem, created_at, autor, publicado')
+          .in('category_slug', matchingSlugs)
           .or('publicado.eq.true,publicado.is.null')
           .order('created_at', { ascending: false })
           .limit(limit);
-        if (!retry.error) {
+        if (!retry.error && retry.data) {
           data = retry.data;
           error = null;
         }
@@ -539,19 +610,26 @@ export async function getNoticiasByCategory(categoria: string, limit = 12): Prom
     if (error) {
       handleSupabaseQueryError('getNoticiasByCategory', error);
       return mockNoticiasList
-        .filter((n) => n.categoria.toLowerCase() === categoria.toLowerCase() && n.publicado)
+        .filter((n) => {
+          const itemSlug = n.category_slug || normalizeCategorySlug(n.categoria);
+          return itemSlug === targetSlug && n.publicado;
+        })
         .slice(0, limit);
     }
 
     isTableMissing = false;
     const items = (data as NoticiaListItem[]) || [];
-    if (items.length > 0) return items;
-
-    return [];
+    return items.map((item) => ({
+      ...item,
+      category_slug: item.category_slug || targetSlug,
+    }));
   } catch (err) {
     handleSupabaseQueryError('getNoticiasByCategory', err);
     return mockNoticiasList
-      .filter((n) => n.categoria.toLowerCase() === categoria.toLowerCase() && n.publicado)
+      .filter((n) => {
+        const itemSlug = n.category_slug || normalizeCategorySlug(n.categoria);
+        return itemSlug === targetSlug && n.publicado;
+      })
       .slice(0, limit);
   }
 }
@@ -710,6 +788,8 @@ export async function getNoticiaByIdAdmin(id: string): Promise<Noticia | null> {
 export async function createNoticia(
   payload: NoticiaInsert
 ): Promise<{ data: Noticia | null; error: string | null }> {
+  const catInfo = getCategoryStyle(payload.categoria || payload.category_slug);
+
   if (!isConfigured) {
     const newNoticia: Noticia = {
       id: crypto.randomUUID(),
@@ -717,7 +797,8 @@ export async function createNoticia(
       slug: payload.slug,
       resumo: payload.resumo,
       conteudo: payload.conteudo,
-      categoria: payload.categoria,
+      categoria: catInfo.name,
+      category_slug: catInfo.slug,
       imagem: payload.imagem,
       autor: payload.autor || 'Redação',
       publicado: payload.publicado ?? true,
@@ -729,12 +810,13 @@ export async function createNoticia(
   }
 
   try {
-    const insertPayload = {
+    const insertPayload: any = {
       titulo: payload.titulo,
       slug: payload.slug,
       resumo: payload.resumo,
       conteudo: payload.conteudo,
-      categoria: payload.categoria,
+      categoria: catInfo.name,
+      category_slug: catInfo.slug,
       imagem: payload.imagem,
       autor: payload.autor || 'Redação',
       publicado: payload.publicado ?? true,
@@ -747,6 +829,20 @@ export async function createNoticia(
       .insert(insertPayload)
       .select()
       .single();
+
+    // Se o erro for de coluna inexistente (ex: tabela antiga sem category_slug), tenta sem a coluna
+    if (error && (error.code === '42703' || error.message?.includes('category_slug'))) {
+      delete insertPayload.category_slug;
+      const retryWithoutSlug = await primaryClient
+        .from('noticias')
+        .insert(insertPayload)
+        .select()
+        .single();
+      if (!retryWithoutSlug.error) {
+        data = retryWithoutSlug.data;
+        error = null;
+      }
+    }
 
     // Se falhar no admin por chave ou RLS, tenta com o cliente anon
     if (error && primaryClient !== supabase) {
@@ -791,6 +887,11 @@ export async function updateNoticia(
   id: string,
   payload: NoticiaUpdate
 ): Promise<{ data: Noticia | null; error: string | null }> {
+  let normalizedCatInfo: ReturnType<typeof getCategoryStyle> | null = null;
+  if (payload.categoria || payload.category_slug) {
+    normalizedCatInfo = getCategoryStyle(payload.categoria || payload.category_slug);
+  }
+
   if (!isConfigured) {
     const index = mockNoticiasList.findIndex((n) => n.id === id);
     if (index === -1) return { data: null, error: 'Notícia não encontrada.' };
@@ -798,30 +899,51 @@ export async function updateNoticia(
     mockNoticiasList[index] = {
       ...mockNoticiasList[index],
       ...payload,
+      ...(normalizedCatInfo
+        ? { categoria: normalizedCatInfo.name, category_slug: normalizedCatInfo.slug }
+        : {}),
       updated_at: new Date().toISOString(),
     };
     return { data: mockNoticiasList[index], error: null };
   }
 
   try {
+    const updateData: any = {
+      ...payload,
+      updated_at: new Date().toISOString(),
+    };
+    if (normalizedCatInfo) {
+      updateData.categoria = normalizedCatInfo.name;
+      updateData.category_slug = normalizedCatInfo.slug;
+    }
+
     const primaryClient = supabaseServiceKey ? supabaseAdmin : supabase;
     let { data, error } = await primaryClient
       .from('noticias')
-      .update({
-        ...payload,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
 
+    // Se o erro for de coluna inexistente (banco antigo sem category_slug), tenta sem a coluna
+    if (error && (error.code === '42703' || error.message?.includes('category_slug'))) {
+      delete updateData.category_slug;
+      const retryWithoutSlug = await primaryClient
+        .from('noticias')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+      if (!retryWithoutSlug.error) {
+        data = retryWithoutSlug.data;
+        error = null;
+      }
+    }
+
     if (error && primaryClient !== supabase) {
       const anonAttempt = await supabase
         .from('noticias')
-        .update({
-          ...payload,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();

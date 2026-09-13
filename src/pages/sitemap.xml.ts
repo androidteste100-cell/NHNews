@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getAllSlugs } from '../lib/supabase';
+import { OFFICIAL_CATEGORIES } from '../lib/categories';
 
 export const GET: APIRoute = async ({ site, url }) => {
   const baseUrl = site ? site.origin : url.origin;
@@ -7,12 +8,7 @@ export const GET: APIRoute = async ({ site, url }) => {
 
   const staticRoutes = [
     '',
-    '/categoria/Tecnologia',
-    '/categoria/Economia',
-    '/categoria/Mercados',
-    '/categoria/Ciência',
-    '/categoria/Cidades',
-    '/categoria/Segurança',
+    ...OFFICIAL_CATEGORIES.map((cat) => `/categoria/${cat.slug}`),
   ];
 
   const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>

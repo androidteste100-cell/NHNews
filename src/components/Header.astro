@@ -1,20 +1,21 @@
 ---
 import AdBanner from './AdBanner.astro';
+import { OFFICIAL_CATEGORIES } from '../lib/categories';
 
 const navCategories = [
-  { name: 'Início', href: '/' },
-  { name: 'Tecnologia', href: '/categoria/Tecnologia' },
-  { name: 'Economia', href: '/categoria/Economia' },
-  { name: 'Mercados', href: '/categoria/Mercados' },
-  { name: 'Ciência', href: '/categoria/Ciência' },
-  { name: 'Cidades', href: '/categoria/Cidades' },
-  { name: 'Segurança', href: '/categoria/Segurança' },
+  { name: 'Início', href: '/', slug: '' },
+  ...OFFICIAL_CATEGORIES.map((cat) => ({
+    name: cat.name,
+    href: `/categoria/${cat.slug}`,
+    slug: cat.slug,
+  })),
 ];
 
 const trendingTags = [
-  { name: 'Petróleo & Energia', href: '/categoria/Economia' },
-  { name: 'Inteligência Artificial', href: '/categoria/Tecnologia' },
-  { name: 'Dólar & Ações', href: '/categoria/Mercados' },
+  { name: 'Maceió Hoje', href: '/categoria/maceio' },
+  { name: 'Segurança & Polícia', href: '/categoria/policia' },
+  { name: 'Esportes', href: '/categoria/esporte' },
+  { name: 'Negócios & Mercado', href: '/categoria/economia' },
 ];
 
 const currentDate = new Date().toLocaleDateString('pt-BR', {
@@ -98,13 +99,13 @@ const isCurrent = (href: string) => {
     <div class="max-w-7xl mx-auto px-4 sm:px-8 py-2.5 flex items-center justify-between gap-4">
       
       {/* Menu Superior Desktop com Pills Arredondadas em Alto Contraste */}
-      <nav class="hidden lg:flex items-center gap-2" aria-label="Menu Superior de Categorias">
+      <nav class="hidden lg:flex items-center gap-1.5 xl:gap-2 overflow-x-auto scrollbar-none py-0.5" aria-label="Menu Superior de Categorias">
         {navCategories.map((cat) => {
           const active = isCurrent(cat.href);
           return (
             <a
               href={cat.href}
-              class={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
+              class={`px-3 xl:px-3.5 py-1.5 rounded-full text-[11px] xl:text-xs font-bold uppercase tracking-wider shrink-0 transition-all duration-200 ${
                 active
                   ? 'bg-[#dd3333] text-white shadow-md border-2 border-[#dd3333] scale-105'
                   : 'bg-neutral-800/90 text-neutral-200 border border-neutral-700 hover:border-[#dd3333] hover:text-white hover:bg-[#dd3333] shadow-2xs'

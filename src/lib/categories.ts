@@ -1,40 +1,63 @@
-export interface CategoryStyle {
+import { type CategorySlug, CATEGORY_SLUGS, CategorySlugEnum } from '../types/database.types';
+
+export interface CategoryInfo {
+  slug: CategorySlug;
   name: string;
-  bg: string;          // Classe para o badge pill: ex 'bg-emerald-600'
-  hoverBg: string;     // Classe hover para o badge: ex 'hover:bg-emerald-700'
-  text: string;        // Classe de texto: ex 'text-emerald-600'
-  hoverText: string;   // Classe hover de texto: ex 'hover:text-emerald-600'
+  description: string;
+  bg: string;          // Classe Tailwind para o badge pill: ex 'bg-red-600'
+  hoverBg: string;     // Classe hover para o badge: ex 'hover:bg-red-700'
+  text: string;        // Classe de texto: ex 'text-red-600'
+  hoverText: string;   // Classe hover de texto: ex 'hover:text-red-600'
   lightBg: string;     // Fundo suave de destaque
   border: string;      // Borda temática
   indicator: string;   // Traço vertical de seção temática
   hex: string;         // Cor hexadecimal
 }
 
-export const CATEGORY_STYLES: Record<string, CategoryStyle> = {
-  economia: {
-    name: 'Economia',
-    bg: 'bg-emerald-600',
-    hoverBg: 'hover:bg-emerald-700',
-    text: 'text-emerald-600',
-    hoverText: 'hover:text-emerald-600',
-    lightBg: 'bg-emerald-50',
-    border: 'border-emerald-200',
-    indicator: 'bg-emerald-600',
-    hex: '#059669',
+export type CategoryStyle = CategoryInfo;
+
+/**
+ * Categorias Oficiais do Portal de Notícias
+ * 1. Polícia (policia)
+ * 2. Maceió (maceio)
+ * 3. Interior (interior)
+ * 4. Política (politica)
+ * 5. Economia (economia)
+ * 6. Esporte (esporte)
+ * 7. Mundo (mundo)
+ * 8. Cultura, Lazer & Variedades (cultura-lazer-variedades)
+ */
+export const OFFICIAL_CATEGORIES: CategoryInfo[] = [
+  {
+    slug: 'policia',
+    name: 'Polícia',
+    description: 'Cobertura policial, investigações, segurança pública, operações e ocorrências em tempo real.',
+    bg: 'bg-red-600',
+    hoverBg: 'hover:bg-red-700',
+    text: 'text-red-600',
+    hoverText: 'hover:text-red-600',
+    lightBg: 'bg-red-50',
+    border: 'border-red-200',
+    indicator: 'bg-red-600',
+    hex: '#dc2626',
   },
-  tecnologia: {
-    name: 'Tecnologia',
-    bg: 'bg-blue-600',
-    hoverBg: 'hover:bg-blue-700',
-    text: 'text-blue-600',
-    hoverText: 'hover:text-blue-600',
-    lightBg: 'bg-blue-50',
-    border: 'border-blue-200',
-    indicator: 'bg-blue-600',
-    hex: '#2563eb',
+  {
+    slug: 'maceio',
+    name: 'Maceió',
+    description: 'Acontecimentos, trânsito, serviços públicos, bairros, praias e o dia a dia da capital alagoana.',
+    bg: 'bg-sky-600',
+    hoverBg: 'hover:bg-sky-700',
+    text: 'text-sky-600',
+    hoverText: 'hover:text-sky-600',
+    lightBg: 'bg-sky-50',
+    border: 'border-sky-200',
+    indicator: 'bg-sky-600',
+    hex: '#0284c7',
   },
-  mercados: {
-    name: 'Mercados',
+  {
+    slug: 'interior',
+    name: 'Interior',
+    description: 'Notícias dos municípios do interior, do agreste ao sertão, infraestrutura regional e comunidades.',
     bg: 'bg-amber-600',
     hoverBg: 'hover:bg-amber-700',
     text: 'text-amber-600',
@@ -44,52 +67,10 @@ export const CATEGORY_STYLES: Record<string, CategoryStyle> = {
     indicator: 'bg-amber-600',
     hex: '#d97706',
   },
-  ciencia: {
-    name: 'Ciência',
-    bg: 'bg-purple-600',
-    hoverBg: 'hover:bg-purple-700',
-    text: 'text-purple-600',
-    hoverText: 'hover:text-purple-600',
-    lightBg: 'bg-purple-50',
-    border: 'border-purple-200',
-    indicator: 'bg-purple-600',
-    hex: '#9333ea',
-  },
-  cidades: {
-    name: 'Cidades',
-    bg: 'bg-teal-600',
-    hoverBg: 'hover:bg-teal-700',
-    text: 'text-teal-600',
-    hoverText: 'hover:text-teal-600',
-    lightBg: 'bg-teal-50',
-    border: 'border-teal-200',
-    indicator: 'bg-teal-600',
-    hex: '#0d9488',
-  },
-  seguranca: {
-    name: 'Segurança',
-    bg: 'bg-rose-600',
-    hoverBg: 'hover:bg-rose-700',
-    text: 'text-rose-600',
-    hoverText: 'hover:text-rose-600',
-    lightBg: 'bg-rose-50',
-    border: 'border-rose-200',
-    indicator: 'bg-rose-600',
-    hex: '#e11d48',
-  },
-  saude: {
-    name: 'Saúde',
-    bg: 'bg-cyan-600',
-    hoverBg: 'hover:bg-cyan-700',
-    text: 'text-cyan-600',
-    hoverText: 'hover:text-cyan-600',
-    lightBg: 'bg-cyan-50',
-    border: 'border-cyan-200',
-    indicator: 'bg-cyan-600',
-    hex: '#0891b2',
-  },
-  politica: {
+  {
+    slug: 'politica',
     name: 'Política',
+    description: 'Bastidores do poder, eleições, assembleia legislativa, câmara municipal, governo e decisões judiciais.',
     bg: 'bg-indigo-600',
     hoverBg: 'hover:bg-indigo-700',
     text: 'text-indigo-600',
@@ -99,8 +80,23 @@ export const CATEGORY_STYLES: Record<string, CategoryStyle> = {
     indicator: 'bg-indigo-600',
     hex: '#4f46e5',
   },
-  esportes: {
-    name: 'Esportes',
+  {
+    slug: 'economia',
+    name: 'Economia',
+    description: 'Mercado financeiro, negócios, emprego, agronegócio, comércio, investimentos e inflação.',
+    bg: 'bg-emerald-600',
+    hoverBg: 'hover:bg-emerald-700',
+    text: 'text-emerald-600',
+    hoverText: 'hover:text-emerald-600',
+    lightBg: 'bg-emerald-50',
+    border: 'border-emerald-200',
+    indicator: 'bg-emerald-600',
+    hex: '#059669',
+  },
+  {
+    slug: 'esporte',
+    name: 'Esporte',
+    description: 'Futebol alagoano e nacional, campeonatos, basquete, vôlei, automobilismo e esportes olímpicos.',
     bg: 'bg-green-600',
     hoverBg: 'hover:bg-green-700',
     text: 'text-green-600',
@@ -110,76 +106,156 @@ export const CATEGORY_STYLES: Record<string, CategoryStyle> = {
     indicator: 'bg-green-600',
     hex: '#16a34a',
   },
-  cultura: {
-    name: 'Cultura',
-    bg: 'bg-pink-600',
-    hoverBg: 'hover:bg-pink-700',
-    text: 'text-pink-600',
-    hoverText: 'hover:text-pink-600',
-    lightBg: 'bg-pink-50',
-    border: 'border-pink-200',
-    indicator: 'bg-pink-600',
-    hex: '#db2777',
+  {
+    slug: 'mundo',
+    name: 'Mundo',
+    description: 'Geopolítica internacional, conflitos globais, diplomacia, meio ambiente e grandes eventos mundiais.',
+    bg: 'bg-blue-600',
+    hoverBg: 'hover:bg-blue-700',
+    text: 'text-blue-600',
+    hoverText: 'hover:text-blue-600',
+    lightBg: 'bg-blue-50',
+    border: 'border-blue-200',
+    indicator: 'bg-blue-600',
+    hex: '#2563eb',
   },
-};
+  {
+    slug: 'cultura-lazer-variedades',
+    name: 'Cultura, Lazer & Variedades',
+    description: 'Artes, literatura, música, cinema, teatro, shows, gastronomia, turismo, entretenimento, eventos e estilo de vida.',
+    bg: 'bg-purple-600',
+    hoverBg: 'hover:bg-purple-700',
+    text: 'text-purple-600',
+    hoverText: 'hover:text-purple-600',
+    lightBg: 'bg-purple-50',
+    border: 'border-purple-200',
+    indicator: 'bg-purple-600',
+    hex: '#9333ea',
+  },
+];
 
-const DEFAULT_CATEGORY_STYLE: CategoryStyle = {
-  name: 'Geral',
-  bg: 'bg-slate-700',
-  hoverBg: 'hover:bg-slate-800',
-  text: 'text-slate-700',
-  hoverText: 'hover:text-slate-700',
-  lightBg: 'bg-slate-50',
-  border: 'border-slate-200',
-  indicator: 'bg-slate-700',
-  hex: '#334155',
-};
+export const CATEGORY_MAP: Record<CategorySlug, CategoryInfo> = OFFICIAL_CATEGORIES.reduce(
+  (acc, cat) => {
+    acc[cat.slug] = cat;
+    return acc;
+  },
+  {} as Record<CategorySlug, CategoryInfo>
+);
 
-export function getCategoryStyle(category?: string | null): CategoryStyle {
-  if (!category) return DEFAULT_CATEGORY_STYLE;
+// Mapeamento retrocompatível para garantir que slugs antigos apontem para Cultura, Lazer & Variedades
+const culturaLazerInfo = CATEGORY_MAP['cultura-lazer-variedades'];
+if (culturaLazerInfo) {
+  CATEGORY_MAP['cultura'] = culturaLazerInfo;
+  CATEGORY_MAP['lazer-variedades'] = culturaLazerInfo;
+}
 
-  const normalized = category
+export const CATEGORY_STYLES = CATEGORY_MAP;
+
+export function isValidCategorySlug(slug: string): slug is CategorySlug {
+  return (CATEGORY_SLUGS as readonly string[]).includes(slug);
+}
+
+/**
+ * Normaliza qualquer string (nome, slug antigo ou texto desformatado)
+ * para um dos slugs oficiais de categoria. Se a categoria for genérica ou vazia,
+ * inspeciona palavras-chave do título para categorização precisa.
+ */
+export function normalizeCategorySlug(category?: string | null, title?: string | null): CategorySlug {
+  const cleanedCat = (category || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .replace(/\s+/g, '-');
+
+  const cleanedTitle = (title || '')
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .trim();
 
-  if (normalized.includes('econom') || normalized.includes('financ')) {
-    return CATEGORY_STYLES.economia;
-  }
-  if (normalized.includes('tecnolog') || normalized.includes('ia') || normalized.includes('software') || normalized.includes('comput')) {
-    return CATEGORY_STYLES.tecnologia;
-  }
-  if (normalized.includes('mercado') || normalized.includes('negocio') || normalized.includes('empresa') || normalized.includes('invest')) {
-    return CATEGORY_STYLES.mercados;
-  }
+  // 1. Slugs diretos e aliases para Cultura, Lazer & Variedades
   if (
-    normalized.includes('cienc') ||
-    normalized.includes('sustentab') ||
-    normalized.includes('meio ambiente') ||
-    normalized.includes('clima') ||
-    normalized.includes('pesquisa')
+    cleanedCat === 'cultura-lazer-variedades' ||
+    cleanedCat === 'cultura' ||
+    cleanedCat === 'lazer-variedades' ||
+    cleanedCat === 'cultura-lazer' ||
+    cleanedCat === 'lazer' ||
+    cleanedCat === 'variedades'
   ) {
-    return CATEGORY_STYLES.ciencia;
-  }
-  if (normalized.includes('cidade') || normalized.includes('urban') || normalized.includes('municip')) {
-    return CATEGORY_STYLES.cidades;
-  }
-  if (normalized.includes('seguranc') || normalized.includes('polic') || normalized.includes('crime') || normalized.includes('justic')) {
-    return CATEGORY_STYLES.seguranca;
-  }
-  if (normalized.includes('saud') || normalized.includes('medic') || normalized.includes('hospital')) {
-    return CATEGORY_STYLES.saude;
-  }
-  if (normalized.includes('politic') || normalized.includes('governo') || normalized.includes('congresso')) {
-    return CATEGORY_STYLES.politica;
-  }
-  if (normalized.includes('esport') || normalized.includes('futebol') || normalized.includes('jogos')) {
-    return CATEGORY_STYLES.esportes;
-  }
-  if (normalized.includes('cultur') || normalized.includes('art') || normalized.includes('cinem') || normalized.includes('musica')) {
-    return CATEGORY_STYLES.cultura;
+    return 'cultura-lazer-variedades';
   }
 
-  return CATEGORY_STYLES[normalized] || DEFAULT_CATEGORY_STYLE;
+  // 2. Correspondência exata de slug ativo
+  if (isValidCategorySlug(cleanedCat) && cleanedCat !== 'cultura' && cleanedCat !== 'lazer-variedades') {
+    return cleanedCat;
+  }
+
+  // 3. Mapeamentos por palavras-chave na categoria informada
+  if (cleanedCat.includes('polic') || cleanedCat.includes('crime') || cleanedCat.includes('seguranc') || cleanedCat.includes('preso') || cleanedCat.includes('golpe')) {
+    return 'policia';
+  }
+  if (cleanedCat.includes('maceio') || cleanedCat.includes('capital') || cleanedCat.includes('paju') || cleanedCat.includes('ponta-verde') || cleanedCat.includes('cidade')) {
+    return 'maceio';
+  }
+  if (cleanedCat.includes('interior') || cleanedCat.includes('arapiraca') || cleanedCat.includes('sertao') || cleanedCat.includes('agreste') || cleanedCat.includes('municip')) {
+    return 'interior';
+  }
+  if (cleanedCat.includes('politic') || cleanedCat.includes('governo') || cleanedCat.includes('eleic') || cleanedCat.includes('prefeit') || cleanedCat.includes('camara') || cleanedCat.includes('congresso') || cleanedCat.includes('senad')) {
+    return 'politica';
+  }
+  if (cleanedCat.includes('econom') || cleanedCat.includes('financ') || cleanedCat.includes('mercado') || cleanedCat.includes('dolar') || cleanedCat.includes('inflac') || cleanedCat.includes('negocio') || cleanedCat.includes('tecnolog') || cleanedCat.includes('cienc') || cleanedCat.includes('ia')) {
+    return 'economia';
+  }
+  if (cleanedCat.includes('esport') || cleanedCat.includes('futebol') || cleanedCat.includes('csa') || cleanedCat.includes('crb') || cleanedCat.includes('copa') || cleanedCat.includes('atlet')) {
+    return 'esporte';
+  }
+  if (cleanedCat.includes('mundo') || cleanedCat.includes('internacional') || cleanedCat.includes('global') || cleanedCat.includes('exterior') || cleanedCat.includes('eua') || cleanedCat.includes('europa') || cleanedCat.includes('guerra')) {
+    return 'mundo';
+  }
+  if (cleanedCat.includes('cultur') || cleanedCat.includes('lazer') || cleanedCat.includes('variedade') || cleanedCat.includes('arte') || cleanedCat.includes('musica') || cleanedCat.includes('livro') || cleanedCat.includes('teatro') || cleanedCat.includes('cinema') || cleanedCat.includes('gastronom') || cleanedCat.includes('turismo') || cleanedCat.includes('show')) {
+    return 'cultura-lazer-variedades';
+  }
+
+  // 4. Se a categoria for genérica ("geral", "noticia", vazio) ou não identificada, busca por semântica no título
+  if (cleanedTitle) {
+    if (cleanedTitle.includes('rap') || cleanedTitle.includes('rima') || cleanedTitle.includes('musica') || cleanedTitle.includes('gastronomia') || cleanedTitle.includes('culinaria') || cleanedTitle.includes('show') || cleanedTitle.includes('teatro') || cleanedTitle.includes('cinema') || cleanedTitle.includes('cultura') || cleanedTitle.includes('lazer') || cleanedTitle.includes('festival') || cleanedTitle.includes('turismo') || cleanedTitle.includes('praia')) {
+      return 'cultura-lazer-variedades';
+    }
+    if (cleanedTitle.includes('cnh') || cleanedTitle.includes('economia') || cleanedTitle.includes('bilho') || cleanedTitle.includes('milho') || cleanedTitle.includes('dolar') || cleanedTitle.includes('inflacao') || cleanedTitle.includes('imposto') || cleanedTitle.includes('trabalho') || cleanedTitle.includes('emprego') || cleanedTitle.includes('renda') || cleanedTitle.includes('negocio') || cleanedTitle.includes('tecnologia')) {
+      return 'economia';
+    }
+    if (cleanedTitle.includes('policia') || cleanedTitle.includes('preso') || cleanedTitle.includes('prisao') || cleanedTitle.includes('apreens') || cleanedTitle.includes('crime') || cleanedTitle.includes('assalto') || cleanedTitle.includes('homicidio') || cleanedTitle.includes('seguranca') || cleanedTitle.includes('droga')) {
+      return 'policia';
+    }
+    if (cleanedTitle.includes('prefeito') || cleanedTitle.includes('governador') || cleanedTitle.includes('eleicao') || cleanedTitle.includes('politica') || cleanedTitle.includes('votacao') || cleanedTitle.includes('camara') || cleanedTitle.includes('deputado')) {
+      return 'politica';
+    }
+    if (cleanedTitle.includes('futebol') || cleanedTitle.includes('campeonato') || cleanedTitle.includes('esporte') || cleanedTitle.includes('csa') || cleanedTitle.includes('crb') || cleanedTitle.includes('gol') || cleanedTitle.includes('atleta')) {
+      return 'esporte';
+    }
+    if (cleanedTitle.includes('arapiraca') || cleanedTitle.includes('interior') || cleanedTitle.includes('sertao') || cleanedTitle.includes('agreste') || cleanedTitle.includes('penedo') || cleanedTitle.includes('palmeira dos indios')) {
+      return 'interior';
+    }
+    if (cleanedTitle.includes('maceio') || cleanedTitle.includes('pajucara') || cleanedTitle.includes('ponta verde') || cleanedTitle.includes('jatiuca') || cleanedTitle.includes('orla')) {
+      return 'maceio';
+    }
+    if (cleanedTitle.includes('eua') || cleanedTitle.includes('europa') || cleanedTitle.includes('russia') || cleanedTitle.includes('ucrania') || cleanedTitle.includes('israel') || cleanedTitle.includes('mundo') || cleanedTitle.includes('internacional')) {
+      return 'mundo';
+    }
+  }
+
+  // Fallback padrão para a editoria principal de acontecimentos da capital
+  return 'maceio';
+}
+
+export function getCategoryBySlug(slug?: string | null): CategoryInfo | undefined {
+  if (!slug) return undefined;
+  const normalized = normalizeCategorySlug(slug);
+  return CATEGORY_MAP[normalized];
+}
+
+export function getCategoryStyle(category?: string | null, title?: string | null): CategoryInfo {
+  const normalized = normalizeCategorySlug(category, title);
+  return CATEGORY_MAP[normalized] || OFFICIAL_CATEGORIES[0];
 }

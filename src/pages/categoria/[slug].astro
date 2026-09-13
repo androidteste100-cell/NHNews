@@ -1,0 +1,141 @@
+---
+export const prerender = false;
+
+// Garante renderização sob demanda (SSR) no Vercel Edge sem cache obsoleto
+Astro.response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+
+import Layout from '../../layouts/Layout.astro';
+import NewsCard from '../../components/NewsCard.astro';
+import AdBanner from '../../components/AdBanner.astro';
+import { getNoticiasByCategory } from '../../lib/supabase';
+import { getCategoryStyle, OFFICIAL_CATEGORIES, isValidCategorySlug } from '../../lib/categories';
+
+const { slug } = Astro.params;
+
+if (!slug) {
+  return Astro.redirect('/404');
+}
+
+// Obtém informações consolidadas da categoria com tolerância a acentuação e caixa
+const catInfo = getCategoryStyle(slug);
+const categorySlug = catInfo.slug;
+const categoryName = catInfo.name;
+
+// Busca as matérias filtrando pela categoria oficial (slug / tabela Supabase)
+const noticias = await getNoticiasByCategory(categorySlug, 18);
+
+const siteUrl = Astro.site?.origin || Astro.url.origin;
+const canonicalUrl = `${siteUrl}/categoria/${categorySlug}`;
+
+const breadcrumbs = [
+  { name: 'Início', item: siteUrl },
+  { name: categoryName, item: canonicalUrl },
+];
+---
+
+<Layout
+  title={`Notícias de ${categoryName} — Portal de Notícias`}
+  description={`Acompanhe em tempo real todas as matérias, reportagens e investigações sobre ${categoryName}.`}
+  canonicalURL={canonicalUrl}
+  breadcrumbs={breadcrumbs}
+>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    
+    <!-- Navegação Breadcrumb -->
+    <nav aria-label="Breadcrumb" class="mb-5 text-xs font-bold uppercase tracking-wider text-neutral-500 flex items-center gap-2">
+      <a href="/" class="hover:text-[#dd3333] transition-colors">Início</a>
+      <span class="text-neutral-300">/</span>
+      <span class="text-neutral-400">Categorias</span>
+      <span class="text-neutral-300">/</span>
+      <span class="text-neutral-900 font-extrabold">{categoryName}</span>
+    </nav>
+
+    <!-- Cabeçalho da Categoria -->
+    <div class="border-b-2 border-neutral-200 pb-5 mb-6 flex flex-col sm:flex-row sm:items-baseline justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-3">
+          <span class={`w-3.5 h-9 ${catInfo.indicator} rounded-full inline-block shrink-0`}></span>
+          <h1 class="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight uppercase italic text-neutral-950">
+            {categoryName}
+          </h1>
+        </div>
+        <p class="text-xs sm:text-sm text-neutral-600 mt-2 max-w-3xl">
+          {catInfo.description}
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2 shrink-0">
+        <span class="text-[11px] font-mono font-bold bg-neutral-900 text-white px-3.5 py-1.5 rounded-full uppercase tracking-wider shadow-2xs">
+          {noticias.length} {noticias.length === 1 ? 'MATÉRIA' : 'MATÉRIAS'}
+        </span>
+      </div>
+    </div>
+
+    <!-- Navegação Rápida entre as 9 Categorias Oficiais -->
+    <div class="mb-8 overflow-x-auto pb-2 scrollbar-none">
+      <div class="flex items-center gap-2 min-w-max">
+        <span class="text-[10px] font-mono font-bold uppercase text-neutral-400 mr-1">Outras Editorias:</span>
+        {OFFICIAL_CATEGORIES.map((cat) => {
+          const isSelected = cat.slug === categorySlug;
+          return (
+            <a
+              href={`/categoria/${cat.slug}`}
+              class={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
+                isSelected
+                  ? `${cat.bg} text-white shadow-xs scale-105`
+                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 hover:text-neutral-950'
+              }`}
+            >
+              {cat.name}
+            </a>
+          );
+        })}
+      </div>
+    </div>
+
+    <!-- Grade de Notícias da Categoria -->
+    {noticias.length > 0 ? (
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {noticias.map((item, index) => (
+          <>
+            <NewsCard noticia={item} variant="standard" />
+            {index === 2 && (
+              <div class="col-span-full my-4 flex justify-center">
+                <div class="w-full max-w-[728px] bg-white border border-neutral-200 rounded-2xl p-2 shadow-xs">
+                  <AdBanner slotType="header" customClass="!my-0" />
+                </div>
+              </div>
+            )}
+          </>
+        ))}
+      </div>
+    ) : (
+      <div class="text-center py-20 bg-white rounded-2xl border border-neutral-200 p-8 shadow-xs">
+        <div class="w-12 h-12 rounded-full bg-neutral-100 text-neutral-400 mx-auto flex items-center justify-center text-xl font-bold mb-3">
+          📰
+        </div>
+        <h2 class="text-xl font-bold text-neutral-900 mb-2">
+          Nenhuma matéria cadastrada nesta categoria
+        </h2>
+        <p class="text-neutral-500 max-w-md mx-auto text-xs sm:text-sm mb-6">
+          Novas notícias sobre <strong>{categoryName}</strong> são indexadas e publicadas automaticamente.
+        </p>
+        <div class="flex flex-wrap items-center justify-center gap-3">
+          <a
+            href="/"
+            class="inline-block bg-neutral-900 hover:bg-[#dd3333] text-white text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-full transition-colors"
+          >
+            Página Inicial
+          </a>
+          <a
+            href="/admin"
+            class="inline-block bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-full transition-colors"
+          >
+            Publicar Matéria
+          </a>
+        </div>
+      </div>
+    )}
+
+  </div>
+</Layout>
