@@ -8,6 +8,7 @@ import Layout from '../../layouts/Layout.astro';
 import NewsCard from '../../components/NewsCard.astro';
 import AdBanner from '../../components/AdBanner.astro';
 import { getNoticiasByCategory } from '../../lib/supabase';
+import { getCategoryStyle } from '../../lib/categories';
 
 const { categoria } = Astro.params;
 
@@ -16,6 +17,7 @@ if (!categoria) {
 }
 
 const noticias = await getNoticiasByCategory(categoria, 18);
+const catStyle = getCategoryStyle(categoria);
 
 const siteUrl = Astro.site?.origin || Astro.url.origin;
 const canonicalUrl = `${siteUrl}/categoria/${encodeURIComponent(categoria)}`;
@@ -45,7 +47,7 @@ const breadcrumbs = [
     <div class="border-b-2 border-neutral-200 pb-3 mb-8 flex flex-col sm:flex-row sm:items-baseline justify-between gap-3">
       <div>
         <h1 class="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight uppercase italic text-neutral-950 flex items-center gap-3">
-          <span class="w-3 h-8 bg-blue-600 rounded-full inline-block"></span>
+          <span class={`w-3 h-8 ${catStyle.indicator} rounded-full inline-block`}></span>
           {categoria}
         </h1>
         <p class="text-xs sm:text-sm text-neutral-500 mt-1">

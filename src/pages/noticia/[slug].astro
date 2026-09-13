@@ -9,6 +9,7 @@ import AdBanner from '../../components/AdBanner.astro';
 import NewsCard from '../../components/NewsCard.astro';
 import { getNoticiaBySlug, getRecentNoticias } from '../../lib/supabase';
 import { sanitizeArticleHtml } from '../../lib/sanitize';
+import { getCategoryStyle } from '../../lib/categories';
 
 const { slug } = Astro.params;
 
@@ -31,6 +32,7 @@ const safeTitulo = noticia.titulo?.trim() || 'Notícia em Atualização';
 const safeResumo = noticia.resumo?.trim() || '';
 const safeAutor = noticia.autor?.trim() || 'Redação';
 const safeCategoria = noticia.categoria?.trim() || 'Geral';
+const catStyle = getCategoryStyle(safeCategoria);
 const safeImagem = noticia.imagem?.trim() || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?q=80&w=1200&auto=format&fit=crop';
 const autorInitial = (safeAutor.charAt(0) || 'R').toUpperCase();
 
@@ -143,7 +145,7 @@ const breadcrumbs = [
           <div class="mb-3">
             <a
               href={`/categoria/${safeCategoria}`}
-              class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full shadow-xs transition-colors"
+              class={`inline-block ${catStyle.bg} ${catStyle.hoverBg} text-white text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full shadow-xs transition-colors`}
             >
               {safeCategoria}
             </a>

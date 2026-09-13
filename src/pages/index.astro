@@ -8,6 +8,7 @@ import Layout from '../layouts/Layout.astro';
 import NewsCard from '../components/NewsCard.astro';
 import AdBanner from '../components/AdBanner.astro';
 import { getRecentNoticias, getNoticiasByCategory, isSupabaseConnected, isSupabaseTableMissing } from '../lib/supabase';
+import { getCategoryStyle } from '../lib/categories';
 import type { NoticiaListItem } from '../types/database.types';
 
 // Execução SSR: busca das notícias mais recentes e por editoria diretamente do banco
@@ -40,6 +41,7 @@ const plantaoResumo = manchetePrincipal?.resumo || '';
 const plantaoSlug = (manchetePrincipal?.slug && manchetePrincipal.slug.trim().replace(/^\/+|\/+$/g, '')) || (manchetePrincipal?.id ? `noticia-${manchetePrincipal.id}` : 'recente');
 const plantaoImagem = (manchetePrincipal?.imagem && manchetePrincipal.imagem.trim()) || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?q=80&w=1200&auto=format&fit=crop';
 const plantaoCategoria = manchetePrincipal?.categoria || 'Geral';
+const plantaoStyle = getCategoryStyle(plantaoCategoria);
 
 // Montagem inteligente das 4 seções temáticas (Economia + 3 novos assuntos solicitados)
 const usedThematicIds = new Set<string>();
@@ -140,7 +142,7 @@ const secoesTematicas = [
               <span class="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
               PLANTÃO 24H
             </span>
-            <span class="text-[11px] font-bold uppercase bg-blue-600 text-white px-2.5 py-1 rounded-full shadow-xs tracking-wider">
+            <span class={`text-[11px] font-bold uppercase ${plantaoStyle.bg} text-white px-2.5 py-1 rounded-full shadow-xs tracking-wider`}>
               {plantaoCategoria}
             </span>
           </div>
@@ -216,7 +218,7 @@ const secoesTematicas = [
             />
           </a>
           <div class="min-w-0 flex-1">
-            <div class="text-[10px] font-bold uppercase text-blue-600 tracking-wide mb-0.5">
+            <div class={`text-[10px] font-bold uppercase ${plantaoStyle.text} tracking-wide mb-0.5`}>
               {plantaoCategoria}
             </div>
             <a 
@@ -305,17 +307,18 @@ const secoesTematicas = [
             4. SEÇÕES TEMÁTICAS COM BARRA DE CATEGORIA ESTILO CPG
             Economia & Inovação + 3 novas seções temáticas completas (Tecnologia, Mercados e Ciência)
         ========================================================================= */}
-        {secoesTematicas.map((secao, idx) => (
-          secao.noticias.length > 0 && (
+        {secoesTematicas.map((secao, idx) => {
+          const secaoStyle = getCategoryStyle(secao.categoria);
+          return secao.noticias.length > 0 && (
             <section class="mb-10" aria-label={`Seção ${secao.titulo}`}>
               <div class="flex items-center justify-between border-b-2 border-neutral-200 pb-3 mb-6">
                 <h2 class="text-xl sm:text-2xl font-bold text-neutral-900 tracking-tight flex items-center gap-2.5">
-                  <span class="w-2.5 h-6 bg-blue-600 rounded-full inline-block"></span>
+                  <span class={`w-2.5 h-6 ${secaoStyle.indicator} rounded-full inline-block`}></span>
                   {secao.titulo}
                 </h2>
                 <a 
                   href={secao.href} 
-                  class="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-neutral-700 hover:text-blue-600 transition-colors group"
+                  class={`flex items-center gap-1.5 text-xs sm:text-sm font-bold text-neutral-700 ${secaoStyle.hoverText} transition-colors group`}
                 >
                   Mais artigos <span class="group-hover:translate-x-1 transition-transform">→</span>
                 </a>
@@ -336,8 +339,8 @@ const secoesTematicas = [
                 </div>
               )}
             </section>
-          )
-        ))}
+          );
+        })}
 
         {/* =========================================================================
             5. SEÇÃO DIVIDIDA: FEED MAIS RECENTES (65%) + SIDEBAR MAIS LIDAS (35%)
