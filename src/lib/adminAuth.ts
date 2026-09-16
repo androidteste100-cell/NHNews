@@ -78,7 +78,7 @@ export function isAdminAuthenticated(
     const checkRequest = (req: Request): boolean => {
       try {
         // Query param ?auth= ou ?token=
-        const url = new URL(req.url);
+        const url = new URL(req.url, 'http://localhost:3000');
         const queryAuth = url.searchParams.get('auth') || url.searchParams.get('token');
         if (isValidAdminToken(queryAuth)) return true;
 
