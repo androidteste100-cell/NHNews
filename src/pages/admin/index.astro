@@ -5,6 +5,8 @@ import {
   isValidAdminToken, 
   ADMIN_COOKIE_NAME,
   CONFIGURED_ADMIN_PASSWORD,
+  verifyAdminPassword,
+  getAdminSessionToken,
 } from '../../lib/adminAuth';
 import { OFFICIAL_CATEGORIES, getCategoryStyle } from '../../lib/categories';
 import {
@@ -14,6 +16,31 @@ import {
 } from '../../lib/supabase';
 
 export const prerender = false;
+
+let loginErrorMessage = '';
+
+// Suporte a submissão nativa de formulário (fallback essencial)
+if (Astro.request.method === 'POST') {
+  try {
+    const formData = await Astro.request.formData();
+    const submittedPassword = formData.get('password')?.toString() || '';
+    if (verifyAdminPassword(submittedPassword)) {
+      const sessionToken = getAdminSessionToken();
+      Astro.cookies.set(ADMIN_COOKIE_NAME, sessionToken, {
+        path: '/',
+        httpOnly: false,
+        secure: true,
+        sameSite: 'none',
+        maxAge: 60 * 60 * 24 * 7,
+      });
+      return Astro.redirect(`/admin?auth=${encodeURIComponent(sessionToken)}`);
+    } else {
+      loginErrorMessage = 'Senha de acesso incorreta. Tente novamente.';
+    }
+  } catch {
+    loginErrorMessage = 'Erro ao processar login.';
+  }
+}
 
 // Suporte a autenticação via URL (essencial quando cookies de terceiros são bloqueados em iframes)
 const urlAuth = Astro.url.searchParams.get('auth') || Astro.url.searchParams.get('token');
@@ -75,7 +102,7 @@ const tableMissing = isSupabaseTableMissing();
             </p>
           </div>
 
-          <form id="login-form" class="space-y-4">
+          <form id="login-form" method="POST" class="space-y-4">
             <div>
               <label for="admin-password" class="block text-xs font-bold uppercase tracking-wider text-neutral-700 dark:text-neutral-300 mb-1.5">
                 Senha de Administrador
@@ -100,7 +127,12 @@ const tableMissing = isSupabaseTableMissing();
               </div>
             </div>
 
-            <div id="login-error" class="hidden p-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 text-xs font-medium"></div>
+            <div 
+              id="login-error" 
+              class={`${loginErrorMessage ? '' : 'hidden'} p-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 text-xs font-medium`}
+            >
+              {loginErrorMessage}
+            </div>
 
             <button
               type="submit"
@@ -1277,7 +1309,7 @@ git push -u origin main</pre>
       formSlug.value = slugText || '';
       
       // Localiza a opção correta no select de categorias oficiais
-      const catSelect = formCategoria as HTMLSelectElement;
+      const catSelect = formCategoria;
       let matched = false;
       for (let i = 0; i < catSelect.options.length; i++) {
         const opt = catSelect.options[i];

@@ -11,6 +11,9 @@ export default defineConfig({
   site: siteUrl,
   output: "server",
   adapter: vercel(),
+  security: {
+    checkOrigin: false,
+  },
   build: {
     inlineStylesheets: "always",
   },
