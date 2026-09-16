@@ -7,7 +7,7 @@ Astro.response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate
 import Layout from '../layouts/Layout.astro';
 import NewsCard from '../components/NewsCard.astro';
 import AdBanner from '../components/AdBanner.astro';
-import { getRecentNoticias, getNoticiasByCategory, isSupabaseConnected, isSupabaseTableMissing } from '../lib/supabase';
+import { getRecentNoticias, getNoticiasByCategory } from '../lib/supabase';
 import { getCategoryStyle, OFFICIAL_CATEGORIES } from '../lib/categories';
 import type { NoticiaListItem } from '../types/database.types';
 
@@ -31,9 +31,6 @@ const manchetePrincipal = noticias[0];
 const destaquesLaterais = noticias.slice(1, 5); // 4 cards em grade 2x2 ao lado do hero
 const maisLidas = noticias.slice(0, 5); // top 5 para o ranking numerado da sidebar
 const maisRecentes = noticias.slice(5); // feed contínuo de notícias recentes
-
-const hasSupabase = isSupabaseConnected();
-const tableMissing = isSupabaseTableMissing();
 
 // Título e dados seguros da manchete para a barra de plantão
 const plantaoTitulo = manchetePrincipal?.titulo || 'Portal de Notícias atualizado em tempo real';
@@ -254,28 +251,6 @@ const secoesTematicas = [
       </div>
 
     </div>
-
-    {!hasSupabase && (
-      <div class="mb-6 p-4 rounded-2xl bg-white border border-neutral-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-        <div class="flex items-center gap-2.5">
-          <span class={`w-2.5 h-2.5 rounded-full ${tableMissing ? 'bg-amber-500 animate-pulse' : 'bg-[#dd3333] animate-ping'} shrink-0`}></span>
-          <span class="text-neutral-900 font-medium">
-            {tableMissing ? (
-              <>
-                <strong>Conexão Supabase Detectada:</strong> A tabela <code>public.noticias</code> ainda não foi criada no seu banco. Execute o script <code>supabase/schema.sql</code> no SQL Editor do painel Supabase para sincronizar suas matérias.
-              </>
-            ) : (
-              <>
-                <strong>Modo de Demonstração Ativo:</strong> Exibindo dados de teste com layout CPG na cor branca. Configure <code>PUBLIC_SUPABASE_URL</code> e <code>PUBLIC_SUPABASE_ANON_KEY</code> no <code>.env</code> para sincronizar.
-              </>
-            )}
-          </span>
-        </div>
-        <span class="font-mono text-[10px] font-bold uppercase bg-neutral-900 text-white px-3 py-1.5 rounded-full shrink-0">
-          {tableMissing ? 'AÇÃO: EXECUTAR SCHEMA.SQL' : 'STATUS: PRONTO PARA PRODUÇÃO'}
-        </span>
-      </div>
-    )}
 
     {/* =========================================================================
         BARRA DAS 9 CATEGORIAS OFICIAIS COM ÍCONES COLORIDOS

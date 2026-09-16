@@ -28,7 +28,7 @@ function generateSlug(text: string): string {
  * GET: Lista todas as notícias (painel admin)
  */
 export const GET: APIRoute = async ({ request, cookies }) => {
-  if (!isAdminAuthenticated(cookies)) {
+  if (!isAdminAuthenticated(cookies, request)) {
     return new Response(JSON.stringify({ error: 'Não autorizado.' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },
@@ -53,7 +53,7 @@ export const GET: APIRoute = async ({ request, cookies }) => {
  * POST: Cria uma nova notícia
  */
 export const POST: APIRoute = async ({ request, cookies }) => {
-  if (!isAdminAuthenticated(cookies)) {
+  if (!isAdminAuthenticated(cookies, request)) {
     return new Response(JSON.stringify({ error: 'Não autorizado.' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },
@@ -142,7 +142,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
  * PUT: Atualiza notícia existente
  */
 export const PUT: APIRoute = async ({ request, cookies }) => {
-  if (!isAdminAuthenticated(cookies)) {
+  if (!isAdminAuthenticated(cookies, request)) {
     return new Response(JSON.stringify({ error: 'Não autorizado.' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },
@@ -210,7 +210,7 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
  * DELETE: Exclui uma notícia
  */
 export const DELETE: APIRoute = async ({ request, cookies }) => {
-  if (!isAdminAuthenticated(cookies)) {
+  if (!isAdminAuthenticated(cookies, request)) {
     return new Response(JSON.stringify({ error: 'Não autorizado.' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },
@@ -253,7 +253,7 @@ export const DELETE: APIRoute = async ({ request, cookies }) => {
  * PATCH: Alterna status de publicação
  */
 export const PATCH: APIRoute = async ({ request, cookies }) => {
-  if (!isAdminAuthenticated(cookies)) {
+  if (!isAdminAuthenticated(cookies, request)) {
     return new Response(JSON.stringify({ error: 'Não autorizado.' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },

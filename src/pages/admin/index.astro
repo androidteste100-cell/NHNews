@@ -1,6 +1,11 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { isAdminAuthenticated } from '../../lib/adminAuth';
+import { 
+  isAdminAuthenticated, 
+  isValidAdminToken, 
+  ADMIN_COOKIE_NAME,
+  CONFIGURED_ADMIN_PASSWORD,
+} from '../../lib/adminAuth';
 import { OFFICIAL_CATEGORIES, getCategoryStyle } from '../../lib/categories';
 import {
   getAllNoticiasAdmin,
@@ -10,7 +15,23 @@ import {
 
 export const prerender = false;
 
-const authenticated = isAdminAuthenticated(Astro.cookies);
+// Suporte a autenticação via URL (essencial quando cookies de terceiros são bloqueados em iframes)
+const urlAuth = Astro.url.searchParams.get('auth') || Astro.url.searchParams.get('token');
+const hasValidUrlAuth = isValidAdminToken(urlAuth);
+
+if (hasValidUrlAuth && urlAuth) {
+  try {
+    Astro.cookies.set(ADMIN_COOKIE_NAME, urlAuth, {
+      path: '/',
+      httpOnly: false,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 60 * 60 * 24 * 7,
+    });
+  } catch {}
+}
+
+const authenticated = hasValidUrlAuth || isAdminAuthenticated(Astro.cookies, Astro.request);
 
 let noticias = [];
 let totalNoticias = 0;
@@ -92,9 +113,9 @@ const tableMissing = isSupabaseTableMissing();
           </form>
 
           <div class="mt-6 pt-5 border-t border-gray-100 dark:border-neutral-800 text-center text-[11px] text-gray-400 leading-relaxed">
-            <span class="font-semibold text-gray-600 dark:text-neutral-300">Senha Padrão:</span> <code class="bg-gray-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded font-mono text-black dark:text-white">admin123</code>
-            <br />
-            (Personalizável via variável de ambiente <code>ADMIN_PASSWORD</code>)
+            <span class="font-semibold text-gray-600 dark:text-neutral-300">Senha de Acesso:</span> <code class="bg-gray-100 dark:bg-neutral-800 px-2 py-0.5 rounded font-mono text-black dark:text-white font-bold tracking-wider">{CONFIGURED_ADMIN_PASSWORD}</code>
+            <span class="text-gray-400 mx-1">ou</span>
+            <code class="bg-gray-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded font-mono text-neutral-600 dark:text-neutral-300">admin123</code>
           </div>
         </div>
       </div>
@@ -864,7 +885,58 @@ git push -u origin main</pre>
 ========================================================================= */}
 <script is:inline>
   // --------------------------------------------------------------------------
-  // 1. Fluxo de Autenticação (Login / Logout)
+  // 1. Funções Auxiliares de Autenticação (Suporta Cookies, LocalStorage e URL)
+  // --------------------------------------------------------------------------
+  function getAdminToken() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return (
+      urlParams.get('auth') || 
+      urlParams.get('token') || 
+      localStorage.getItem('portal_admin_token') || 
+      ''
+    );
+  }
+
+  function getAuthHeaders(customHeaders = {}) {
+    const token = getAdminToken();
+    const headers = { ...customHeaders };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+      headers['x-admin-token'] = token;
+    }
+    return headers;
+  }
+
+  function reloadWithAuth() {
+    const token = getAdminToken();
+    if (token) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('auth', token);
+      window.location.href = url.toString();
+    } else {
+      window.location.reload();
+    }
+  }
+
+  // Se já houver token salvo mas o formulário de login está na tela, redireciona com ?auth=
+  const initialSavedToken = localStorage.getItem('portal_admin_token');
+  const currentUrlParams = new URLSearchParams(window.location.search);
+  const currentAuth = currentUrlParams.get('auth') || currentUrlParams.get('token');
+
+  if (initialSavedToken && !currentAuth && document.getElementById('login-form')) {
+    window.location.replace('/admin?auth=' + encodeURIComponent(initialSavedToken));
+  }
+
+  // Se veio token via URL, salva no localStorage e sincroniza cookie
+  if (currentAuth) {
+    localStorage.setItem('portal_admin_token', currentAuth);
+    try {
+      document.cookie = `portal_admin_token=${currentAuth}; path=/; max-age=604800; SameSite=None; Secure`;
+    } catch {}
+  }
+
+  // --------------------------------------------------------------------------
+  // 2. Fluxo de Autenticação (Login / Logout)
   // --------------------------------------------------------------------------
   const loginForm = document.getElementById('login-form');
   if (loginForm) {
@@ -899,8 +971,17 @@ git push -u origin main</pre>
           throw new Error(data.error || 'Falha ao autenticar.');
         }
 
-        // Login efetuado com sucesso: recarrega a página para exibir o dashboard
-        window.location.reload();
+        const token = data.token;
+        if (token) {
+          localStorage.setItem('portal_admin_token', token);
+          try {
+            document.cookie = `portal_admin_token=${token}; path=/; max-age=604800; SameSite=None; Secure`;
+          } catch {}
+          // Redireciona com ?auth= para garantir funcionamento mesmo se cookies de terceiros estiverem desabilitados
+          window.location.href = '/admin?auth=' + encodeURIComponent(token);
+        } else {
+          window.location.reload();
+        }
       } catch (err) {
         loginError.innerText = err.message;
         loginError.classList.remove('hidden');
@@ -914,11 +995,13 @@ git push -u origin main</pre>
   logoutBtn?.addEventListener('click', async () => {
     if (!confirm('Deseja encerrar a sessão de administrador?')) return;
     try {
+      localStorage.removeItem('portal_admin_token');
+      try {
+        document.cookie = `portal_admin_token=; path=/; max-age=0; SameSite=None; Secure`;
+      } catch {}
       await fetch('/api/admin/auth', { method: 'DELETE' });
-      window.location.reload();
-    } catch {
-      window.location.reload();
-    }
+    } catch {}
+    window.location.href = '/admin';
   });
 
   // --------------------------------------------------------------------------
@@ -1150,7 +1233,7 @@ git push -u origin main</pre>
     try {
       const res = await fetch('/api/admin/noticias', {
         method: isEdit ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(payload),
       });
 
@@ -1161,7 +1244,7 @@ git push -u origin main</pre>
 
       // Sucesso: fecha o modal e recarrega para sincronizar
       closeModal();
-      window.location.reload();
+      reloadWithAuth();
     } catch (err) {
       formError.innerText = err.message;
       formError.classList.remove('hidden');
@@ -1222,7 +1305,9 @@ git push -u origin main</pre>
 
       // Busca o conteúdo completo via API para garantir integridade
       try {
-        const res = await fetch(`/api/admin/noticias`);
+        const res = await fetch(`/api/admin/noticias`, {
+          headers: getAuthHeaders(),
+        });
         const data = await res.json();
         const found = (data.noticias || []).find((n) => n.id === id);
         if (found) {
@@ -1254,17 +1339,17 @@ git push -u origin main</pre>
       try {
         const res = await fetch('/api/admin/noticias', {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ id, publicado: nextStatus }),
         });
 
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Erro ao alterar status.');
 
-        window.location.reload();
+        reloadWithAuth();
       } catch (err) {
         alert(err.message);
-        window.location.reload();
+        reloadWithAuth();
       }
     });
   });
@@ -1282,12 +1367,13 @@ git push -u origin main</pre>
       try {
         const res = await fetch(`/api/admin/noticias?id=${encodeURIComponent(id)}`, {
           method: 'DELETE',
+          headers: getAuthHeaders(),
         });
 
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Erro ao excluir.');
 
-        window.location.reload();
+        reloadWithAuth();
       } catch (err) {
         alert(err.message);
       }

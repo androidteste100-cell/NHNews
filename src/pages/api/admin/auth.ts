@@ -22,18 +22,23 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       });
     }
 
-    // Grava o cookie de sessão seguro por 7 dias
-    cookies.set(ADMIN_COOKIE_NAME, getAdminSessionToken(), {
+    const sessionToken = getAdminSessionToken();
+
+    // Grava o cookie de sessão com SameSite=None e Secure=true para compatibilidade total com iframes e browsers modernos
+    cookies.set(ADMIN_COOKIE_NAME, sessionToken, {
       path: '/',
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      httpOnly: false, // permite sincronização transparente via JS
+      secure: true,
+      sameSite: 'none',
       maxAge: 60 * 60 * 24 * 7,
     });
 
-    return new Response(JSON.stringify({ success: true }), {
+    return new Response(JSON.stringify({ success: true, token: sessionToken }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Set-Cookie': `${ADMIN_COOKIE_NAME}=${sessionToken}; Path=/; Max-Age=604800; Secure; SameSite=None`,
+      },
     });
   } catch (err: any) {
     return new Response(JSON.stringify({ error: err?.message || 'Erro ao processar autenticação.' }), {
@@ -47,6 +52,9 @@ export const DELETE: APIRoute = async ({ cookies }) => {
   cookies.delete(ADMIN_COOKIE_NAME, { path: '/' });
   return new Response(JSON.stringify({ success: true }), {
     status: 200,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      'Set-Cookie': `${ADMIN_COOKIE_NAME}=; Path=/; Max-Age=0; Secure; SameSite=None`,
+    },
   });
 };
