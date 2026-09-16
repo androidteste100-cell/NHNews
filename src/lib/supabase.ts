@@ -1010,6 +1010,47 @@ export async function deleteNoticia(
 }
 
 /**
+ * Remove TODAS as notícias cadastradas no portal (banco Supabase e lista local).
+ */
+export async function deleteAllNoticias(): Promise<{ success: boolean; count: number; error: string | null }> {
+  const previousCount = mockNoticiasList.length;
+  mockNoticiasList = [];
+
+  if (!isConfigured) {
+    return { success: true, count: previousCount, error: null };
+  }
+
+  try {
+    const primaryClient = supabaseServiceKey ? supabaseAdmin : supabase;
+    // PostgREST exige um predicado WHERE para DELETE em massa
+    let { error, count } = await primaryClient
+      .from('noticias')
+      .delete({ count: 'exact' })
+      .neq('id', '00000000-0000-0000-0000-000000000000');
+
+    if (error && primaryClient !== supabase) {
+      const anonAttempt = await supabase
+        .from('noticias')
+        .delete({ count: 'exact' })
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      if (!anonAttempt.error) {
+        error = null;
+        count = anonAttempt.count;
+      }
+    }
+
+    if (error) {
+      return { success: false, count: 0, error: error.message };
+    }
+
+    isTableMissing = false;
+    return { success: true, count: count ?? previousCount, error: null };
+  } catch (err: any) {
+    return { success: false, count: 0, error: err?.message || 'Erro ao excluir todas as notícias.' };
+  }
+}
+
+/**
  * Alterna status de publicação (publicado / rascunho) com agilidade.
  */
 export async function toggleNoticiaStatus(

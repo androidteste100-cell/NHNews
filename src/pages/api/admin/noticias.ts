@@ -5,6 +5,7 @@ import {
   createNoticia,
   updateNoticia,
   deleteNoticia,
+  deleteAllNoticias,
   toggleNoticiaStatus,
 } from '../../../lib/supabase';
 import type { NoticiaInsert, NoticiaUpdate } from '../../../types/database.types';
@@ -207,7 +208,7 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
 };
 
 /**
- * DELETE: Exclui uma notícia
+ * DELETE: Exclui uma notícia individual ou todas as notícias em lote
  */
 export const DELETE: APIRoute = async ({ request, cookies }) => {
   if (!isAdminAuthenticated(cookies, request)) {
@@ -220,6 +221,24 @@ export const DELETE: APIRoute = async ({ request, cookies }) => {
   try {
     const url = new URL(request.url);
     const id = url.searchParams.get('id');
+    const all = url.searchParams.get('all') === 'true' || url.searchParams.get('all') === '1';
+
+    // Exclusão em lote de todas as matérias
+    if (all) {
+      const { success, count, error } = await deleteAllNoticias();
+
+      if (!success || error) {
+        return new Response(JSON.stringify({ error: error || 'Não foi possível excluir todas as notícias.' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true, count, message: 'Todas as notícias foram excluídas com sucesso.' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
 
     if (!id) {
       return new Response(JSON.stringify({ error: 'ID da notícia é obrigatório.' }), {

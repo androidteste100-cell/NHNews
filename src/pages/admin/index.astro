@@ -236,17 +236,17 @@ const tableMissing = isSupabaseTableMissing();
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div class="bg-white dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 p-4 rounded-xl">
             <span class="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-neutral-400">Total de Matérias</span>
-            <div class="text-3xl font-black text-neutral-950 dark:text-white mt-1 font-mono">{totalNoticias}</div>
+            <div id="stat-total-noticias" class="text-3xl font-black text-neutral-950 dark:text-white mt-1 font-mono">{totalNoticias}</div>
           </div>
 
           <div class="bg-white dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 p-4 rounded-xl">
             <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Publicadas no Ar</span>
-            <div class="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-1 font-mono">{totalPublicadas}</div>
+            <div id="stat-total-publicadas" class="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-1 font-mono">{totalPublicadas}</div>
           </div>
 
           <div class="bg-white dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 p-4 rounded-xl">
             <span class="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Em Rascunho</span>
-            <div class="text-3xl font-black text-amber-600 dark:text-amber-400 mt-1 font-mono">{totalRascunhos}</div>
+            <div id="stat-total-rascunhos" class="text-3xl font-black text-amber-600 dark:text-amber-400 mt-1 font-mono">{totalRascunhos}</div>
           </div>
 
           <div class="bg-white dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 p-4 rounded-xl">
@@ -289,13 +289,25 @@ const tableMissing = isSupabaseTableMissing();
             </select>
           </div>
 
-          <button
-            id="btn-nova-noticia"
-            class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2 shrink-0 cursor-pointer shadow-xs"
-          >
-            <span>+</span>
-            <span>Nova Matéria</span>
-          </button>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              id="btn-delete-all-noticias"
+              class="px-3.5 py-2.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white dark:bg-red-950/30 dark:hover:bg-red-600 dark:text-red-400 dark:hover:text-white border-2 border-red-600 dark:border-red-500 font-bold text-xs uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-pointer shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Excluir todas as matérias cadastradas no portal de uma só vez"
+            >
+              <span>🗑️</span>
+              <span>Apagar Todas</span>
+            </button>
+
+            <button
+              id="btn-nova-noticia"
+              class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2 shrink-0 cursor-pointer shadow-xs"
+            >
+              <span>+</span>
+              <span>Nova Matéria</span>
+            </button>
+          </div>
         </div>
 
         {/* =========================================================================
@@ -945,6 +957,15 @@ git push -u origin main</pre>
     return headers;
   }
 
+  function reloadWithAuth() {
+    const token = getAdminToken();
+    const u = new URL(window.location.href);
+    if (token) {
+      u.searchParams.set('auth', token);
+    }
+    window.location.href = u.toString();
+  }
+
   function unlockDashboard(token) {
     const loginView = document.getElementById('login-view-container');
     const dashView = document.getElementById('admin-dashboard-container');
@@ -1451,6 +1472,51 @@ git push -u origin main</pre>
         alert(err.message);
       }
     });
+  });
+
+  // Exclusão em lote de todas as matérias do portal
+  const btnDeleteAll = document.getElementById('btn-delete-all-noticias');
+  btnDeleteAll?.addEventListener('click', async () => {
+    const rows = document.querySelectorAll('.noticia-row');
+    const totalCount = rows.length;
+
+    if (totalCount === 0) {
+      alert('Não há matérias cadastradas no portal para excluir.');
+      return;
+    }
+
+    const firstConfirm = confirm(
+      `⚠️ ATENÇÃO: Deseja apagar TODAS as ${totalCount} notícias do portal de uma vez só?\n\nEsta ação excluirá todas as publicações permanentemente.`
+    );
+    if (!firstConfirm) return;
+
+    const secondConfirm = confirm(
+      `🚨 CONFIRMAÇÃO DEFINITIVA:\nTem certeza absoluta? O portal e o banco de dados ficarão totalmente zerados.`
+    );
+    if (!secondConfirm) return;
+
+    btnDeleteAll.setAttribute('disabled', 'true');
+    const originalContent = btnDeleteAll.innerHTML;
+    btnDeleteAll.innerHTML = '<span>⏳</span><span>Apagando...</span>';
+
+    try {
+      const res = await fetch('/api/admin/noticias?all=true', {
+        method: 'DELETE',
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Falha ao excluir notícias.');
+      }
+
+      alert(data.message || 'Todas as matérias foram excluídas com sucesso!');
+      reloadWithAuth();
+    } catch (err) {
+      alert(err.message || 'Erro inesperado ao excluir matérias.');
+      btnDeleteAll.removeAttribute('disabled');
+      btnDeleteAll.innerHTML = originalContent;
+    }
   });
 
   // --------------------------------------------------------------------------
