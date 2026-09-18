@@ -1,0 +1,297 @@
+---
+import type { NoticiaListItem } from '../types/database.types';
+
+export interface Props {
+  economiaNoticias?: NoticiaListItem[];
+  esporteNoticias?: NoticiaListItem[];
+  brasilNoticias?: NoticiaListItem[];
+  class?: string;
+}
+
+const {
+  economiaNoticias = [],
+  esporteNoticias = [],
+  brasilNoticias = [],
+  class: customClass = '',
+} = Astro.props;
+
+// Fallbacks de alta fidelidade visual para garantir renderização idêntica à foto de referência
+const FALLBACK_ECONOMIA = [
+  {
+    id: 'eco-1',
+    titulo: 'Setor de serviços cresce acima do esperado e gera milhares de empregos no estado',
+    slug: 'setor-servicos-cresce-acima-esperado-gera-empregos',
+    chapeu: 'MERCADO EM ALTA',
+    imagem: 'https://images.unsplash.com/photo-1509391365360-2e959784a276?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    id: 'eco-2',
+    titulo: 'Nova linha de microcrédito beneficia pequenos empreendedores e produtores rurais',
+    slug: 'nova-linha-microcredito-beneficia-pequenos-empreendedores',
+    chapeu: 'CRÉDITO & INVESTIMENTO',
+    imagem: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    id: 'eco-3',
+    titulo: 'Produção industrial avança com novos investimentos em infraestrutura e polos fabris',
+    slug: 'producao-industrial-avanca-investimentos-infraestrutura',
+    chapeu: 'INDÚSTRIA & NEGÓCIOS',
+    imagem: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=800&auto=format&fit=crop',
+  },
+];
+
+const FALLBACK_ESPORTE = [
+  {
+    id: 'esp-1',
+    titulo: 'Saiu! Francisco Sales não chega a acordo de renovação e deixa o ASA',
+    slug: 'francisco-sales-nao-chega-acordo-renovacao-deixa-asa',
+    chapeu: 'SEM ACORDO',
+    imagem: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    id: 'esp-2',
+    titulo: 'Análise: o que o Flamengo pode esperar do Estudiantes na Libertadores?',
+    slug: 'analise-flamengo-estudiantes-libertadores',
+    chapeu: 'REENCONTRO',
+    imagem: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    id: 'esp-3',
+    titulo: 'Corrida para torcedores do CSA reúne milhares de apaixonados em Maceió',
+    slug: 'corrida-torcedores-csa-reune-milhares-maceio',
+    chapeu: 'CORRIDA DO AZULÃO',
+    imagem: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=800&auto=format&fit=crop',
+  },
+];
+
+const FALLBACK_BRASIL = [
+  {
+    id: 'bra-1',
+    titulo: 'Governo federal lança plano nacional para acelerar ferrovias e infraestrutura',
+    slug: 'governo-federal-lanca-plano-nacional-ferrovias-infraestrutura',
+    chapeu: 'EM BRASÍLIA',
+    imagem: 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    id: 'bra-2',
+    titulo: 'Congresso aprova marco regulatório para estímulo à inovação e transição energética',
+    slug: 'congresso-aprova-marco-regulatorio-inovacao-transicao-energetica',
+    chapeu: 'LEGISLAÇÃO NACIONAL',
+    imagem: 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    id: 'bra-3',
+    titulo: 'Balança comercial brasileira registra superávit histórico impulsionada por exportações',
+    slug: 'balanca-comercial-brasileira-registra-superavit-historico',
+    chapeu: 'ECONOMIA & PRODUÇÃO',
+    imagem: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=800&auto=format&fit=crop',
+  },
+];
+
+function smartChapeu(item: { titulo?: string; resumo?: string }, defaultChapeu: string): string {
+  const t = item.titulo || '';
+  if (t.includes(':')) {
+    const pre = t.split(':')[0].trim();
+    if (pre.length >= 3 && pre.length <= 25) return pre.toUpperCase();
+  }
+  if (t.includes('!')) {
+    const pre = t.split('!')[0].trim();
+    if (pre.length >= 3 && pre.length <= 18) return pre.toUpperCase();
+  }
+  return defaultChapeu;
+}
+
+// Consolidação de dados com fallback para garantir 3 matérias por coluna
+function buildColumnItems(
+  provided: NoticiaListItem[],
+  fallback: typeof FALLBACK_POLICIA,
+  defaultChapeus: string[]
+) {
+  const items: Array<{
+    id: string;
+    titulo: string;
+    slug: string;
+    chapeu: string;
+    imagem: string;
+  }> = [];
+
+  for (let i = 0; i < 3; i++) {
+    const raw = provided[i];
+    if (raw && raw.titulo && raw.titulo.trim().length > 3) {
+      items.push({
+        id: raw.id || `item-${i}`,
+        titulo: raw.titulo.trim(),
+        slug: raw.slug || (raw.id ? `noticia-${raw.id}` : fallback[i].slug),
+        chapeu: smartChapeu(raw, defaultChapeus[i] || 'DESTAQUE'),
+        imagem: raw.imagem || fallback[i].imagem,
+      });
+    } else {
+      items.push(fallback[i]);
+    }
+  }
+
+  return items;
+}
+
+const economiaItems = buildColumnItems(economiaNoticias, FALLBACK_ECONOMIA, [
+  'MERCADO EM ALTA',
+  'CRÉDITO & INVESTIMENTO',
+  'INDÚSTRIA & NEGÓCIOS',
+]);
+
+const esporteItems = buildColumnItems(esporteNoticias, FALLBACK_ESPORTE, [
+  'SEM ACORDO',
+  'REENCONTRO',
+  'CORRIDA DO AZULÃO',
+]);
+
+const brasilItems = buildColumnItems(brasilNoticias, FALLBACK_BRASIL, [
+  'EM BRASÍLIA',
+  'LEGISLAÇÃO NACIONAL',
+  'ECONOMIA & PRODUÇÃO',
+]);
+
+const columns = [
+  {
+    nome: 'ECONOMIA',
+    slug: 'economia',
+    href: '/categoria/economia',
+    corText: 'text-[#059669]',
+    corTextHover: 'hover:text-[#047857]',
+    corBorder: 'border-[#059669]',
+    items: economiaItems,
+  },
+  {
+    nome: 'ESPORTE',
+    slug: 'esporte',
+    href: '/categoria/esporte',
+    corText: 'text-[#16A34A]',
+    corTextHover: 'hover:text-[#15803D]',
+    corBorder: 'border-[#16A34A]',
+    items: esporteItems,
+  },
+  {
+    nome: 'BRASIL',
+    slug: 'brasil',
+    href: '/categoria/brasil',
+    corText: 'text-[#0077B6]',
+    corTextHover: 'hover:text-[#005F92]',
+    corBorder: 'border-[#0077B6]',
+    items: brasilItems,
+  },
+];
+---
+
+<section 
+  class={`my-8 bg-white border border-neutral-200 rounded-2xl p-5 sm:p-7 shadow-xs ${customClass}`}
+  aria-label="Guia Especial: Economia, Esporte e Brasil"
+>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-stretch">
+    {columns.map((col) => {
+      const destaque = col.items[0];
+      const secundarios = col.items.slice(1);
+
+      return (
+        <div class="flex flex-col h-full">
+          {/* Cabeçalho da Coluna com o marcador » no estilo exato da imagem */}
+          <div class="border-b-2 border-neutral-200 pb-2 mb-4 h-10 flex items-center">
+            <a 
+              href={col.href} 
+              class={`inline-flex items-center gap-1.5 ${col.corText} ${col.corTextHover} transition-colors group`}
+              title={`Ver mais notícias de ${col.nome}`}
+            >
+              <span class="text-xl sm:text-2xl font-black leading-none group-hover:translate-x-0.5 transition-transform">»</span>
+              <h3 class="text-lg sm:text-xl font-black tracking-tight uppercase">
+                {col.nome}
+              </h3>
+            </a>
+          </div>
+
+          {/* Card Principal de Destaque da Coluna */}
+          {destaque && (
+            <article class="group mb-5 flex flex-col">
+              <a 
+                href={`/noticia/${destaque.slug}`} 
+                class="block relative aspect-[16/10] overflow-hidden rounded-xl bg-neutral-100 border border-neutral-200 focus:outline-none shrink-0"
+                aria-label={`Ler notícia: ${destaque.titulo}`}
+              >
+                <img 
+                  src={destaque.imagem} 
+                  alt={destaque.titulo} 
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                  loading="lazy"
+                  width="500"
+                  height="312"
+                  onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=800&auto=format&fit=crop';"
+                />
+              </a>
+
+              <div class="mt-2.5 flex flex-col">
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-neutral-800 block mb-1">
+                  {destaque.chapeu || 'DESTAQUE'}
+                </span>
+                <h4 class="text-base sm:text-[17px] font-bold leading-snug">
+                  <a 
+                    href={`/noticia/${destaque.slug}`} 
+                    class={`${col.corText} ${col.corTextHover} hover:underline transition-colors block line-clamp-3`}
+                  >
+                    {destaque.titulo}
+                  </a>
+                </h4>
+              </div>
+            </article>
+          )}
+
+          {/* Lista de Notícias Secundárias Horizontais */}
+          <div class="flex-1 flex flex-col justify-start space-y-4 pt-3.5 border-t border-neutral-100">
+            {secundarios.map((item) => (
+              <article class="group flex items-start gap-3">
+                <a 
+                  href={`/noticia/${item.slug}`} 
+                  class="shrink-0 w-24 sm:w-26 aspect-[4/3] overflow-hidden rounded-lg bg-neutral-100 border border-neutral-200 focus:outline-none block relative self-start"
+                  aria-label={`Ler notícia: ${item.titulo}`}
+                >
+                  <img 
+                    src={item.imagem} 
+                    alt={item.titulo} 
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                    width="120"
+                    height="90"
+                    onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=800&auto=format&fit=crop';"
+                  />
+                </a>
+
+                <div class="min-w-0 flex-1 flex flex-col justify-start">
+                  <span class="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wide text-neutral-600 block mb-0.5">
+                    {item.chapeu || 'NOTÍCIA'}
+                  </span>
+                  <h5 class="text-xs sm:text-[13px] font-bold leading-snug">
+                    <a 
+                      href={`/noticia/${item.slug}`} 
+                      class={`${col.corText} ${col.corTextHover} hover:underline transition-colors block line-clamp-3`}
+                      title={item.titulo}
+                    >
+                      {item.titulo}
+                    </a>
+                  </h5>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          {/* Link para ver todas da editoria */}
+          <div class="mt-auto pt-3.5 border-t border-neutral-100 text-right">
+            <a 
+              href={col.href} 
+              class={`text-[11px] font-bold uppercase tracking-wider ${col.corText} ${col.corTextHover} hover:underline inline-flex items-center gap-1`}
+            >
+              <span>Mais em {col.nome}</span>
+              <span>→</span>
+            </a>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+</section>

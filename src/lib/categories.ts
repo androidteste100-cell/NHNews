@@ -68,6 +68,19 @@ export const OFFICIAL_CATEGORIES: CategoryInfo[] = [
     hex: '#d97706',
   },
   {
+    slug: 'brasil',
+    name: 'Brasil',
+    description: 'Cobertura completa de notícias nacionais, decisões federais, economia, sociedade e acontecimentos de norte a sul do país.',
+    bg: 'bg-[#0077B6]',
+    hoverBg: 'hover:bg-[#005f92]',
+    text: 'text-[#0077B6]',
+    hoverText: 'hover:text-[#0077B6]',
+    lightBg: 'bg-blue-50',
+    border: 'border-blue-200',
+    indicator: 'bg-[#0077B6]',
+    hex: '#0077b6',
+  },
+  {
     slug: 'politica',
     name: 'Política',
     description: 'Bastidores do poder, eleições, assembleia legislativa, câmara municipal, governo e decisões judiciais.',
@@ -213,12 +226,18 @@ export function normalizeCategorySlug(category?: string | null, title?: string |
   if (cleanedCat.includes('mundo') || cleanedCat.includes('internacional') || cleanedCat.includes('global') || cleanedCat.includes('exterior') || cleanedCat.includes('eua') || cleanedCat.includes('europa') || cleanedCat.includes('guerra')) {
     return 'mundo';
   }
+  if (cleanedCat.includes('brasil') || cleanedCat.includes('nacional') || cleanedCat.includes('federal') || cleanedCat.includes('brasilia')) {
+    return 'brasil';
+  }
   if (cleanedCat.includes('cultur') || cleanedCat.includes('lazer') || cleanedCat.includes('variedade') || cleanedCat.includes('arte') || cleanedCat.includes('musica') || cleanedCat.includes('livro') || cleanedCat.includes('teatro') || cleanedCat.includes('cinema') || cleanedCat.includes('gastronom') || cleanedCat.includes('turismo') || cleanedCat.includes('show')) {
     return 'cultura-lazer-variedades';
   }
 
   // 4. Se a categoria for genérica ("geral", "noticia", vazio) ou não identificada, busca por semântica no título
   if (cleanedTitle) {
+    if (cleanedTitle.includes('brasil') || cleanedTitle.includes('nacional') || cleanedTitle.includes('stf') || cleanedTitle.includes('brasilia') || cleanedTitle.includes('ministerio') || cleanedTitle.includes('receita federal')) {
+      return 'brasil';
+    }
     if (cleanedTitle.includes('rap') || cleanedTitle.includes('rima') || cleanedTitle.includes('musica') || cleanedTitle.includes('gastronomia') || cleanedTitle.includes('culinaria') || cleanedTitle.includes('show') || cleanedTitle.includes('teatro') || cleanedTitle.includes('cinema') || cleanedTitle.includes('cultura') || cleanedTitle.includes('lazer') || cleanedTitle.includes('festival') || cleanedTitle.includes('turismo') || cleanedTitle.includes('praia')) {
       return 'cultura-lazer-variedades';
     }

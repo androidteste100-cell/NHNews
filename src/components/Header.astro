@@ -34,36 +34,36 @@ const isCurrent = (href: string) => {
 
 <header class="w-full bg-white border-b border-neutral-200 shadow-xs">
   {/* Topbar Informativa com data e links */}
-  <div class="border-b border-slate-800 text-[11px] text-slate-300 py-1.5 px-4 sm:px-8 bg-[#090D16]">
+  <div class="border-b border-[#005F92] text-[11px] text-blue-100 py-1.5 px-4 sm:px-8 bg-[#023E8A]">
     <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
       <div class="flex items-center gap-2 capitalize font-medium">
         <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
         <span class="text-white">{currentDate}</span>
       </div>
       <div class="flex items-center gap-4">
-        <a href="/rss.xml" class="hover:text-white transition-colors flex items-center gap-1 font-semibold text-slate-300" target="_blank" rel="noopener noreferrer">
-          <svg class="w-3.5 h-3.5 text-amber-400 shrink-0" width="14" height="14" style="width: 14px; height: 14px; max-width: 14px; max-height: 14px;" fill="currentColor" viewBox="0 0 24 24">
+        <a href="/rss.xml" class="hover:text-white transition-colors flex items-center gap-1 font-semibold text-blue-100" target="_blank" rel="noopener noreferrer">
+          <svg class="w-3.5 h-3.5 text-amber-300 shrink-0" width="14" height="14" style="width: 14px; height: 14px; max-width: 14px; max-height: 14px;" fill="currentColor" viewBox="0 0 24 24">
             <path d="M6.18 15.64a2.18 2.18 0 0 1 2.18 2.18C8.36 19 7.38 20 6.18 20C5 20 4 19 4 17.82a2.18 2.18 0 0 1 2.18-2.18M4 4.44A15.56 15.56 0 0 1 19.56 20h-2.83A12.73 12.73 0 0 0 4 7.27V4.44m0 5.66a9.9 9.9 0 0 1 9.9 9.9h-2.83A7.07 7.07 0 0 0 4 12.93V10.1z"/>
           </svg>
           RSS FEED
         </a>
-        <a href="/sitemap.xml" class="hover:text-white transition-colors font-semibold text-slate-300" target="_blank" rel="noopener noreferrer">SITEMAP</a>
-        <span class="text-slate-600">|</span>
-        <span class="font-mono text-[10px] uppercase text-slate-400">SSR EDGE VERCEL</span>
+        <a href="/sitemap.xml" class="hover:text-white transition-colors font-semibold text-blue-100" target="_blank" rel="noopener noreferrer">SITEMAP</a>
+        <span class="text-blue-300/60">|</span>
+        <span class="font-mono text-[10px] uppercase text-blue-200">SSR EDGE VERCEL</span>
       </div>
     </div>
   </div>
 
-  {/* Barra Principal da Marca (Cabeçalho em #0F172A) */}
-  <div class="w-full bg-[#0F172A] text-white shadow-xs border-b border-slate-800">
+  {/* Barra Principal da Marca (Cabeçalho em Azul Pacífico / Oceano #0077B6) */}
+  <div class="w-full bg-[#0077B6] text-white shadow-xs border-b border-[#005F92]">
     <div class="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex items-center justify-between gap-4">
       <div class="flex items-center gap-4">
         <a href="/" class="group flex items-center gap-2">
           <div class="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tighter uppercase italic text-white drop-shadow-xs">
-            PORTAL<span class="text-[#dd3333]">NOTÍCIAS</span>
+            PORTAL<span class="text-amber-300">NOTÍCIAS</span>
           </div>
         </a>
-        <span class="hidden sm:inline-block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-3 border-l border-slate-700">
+        <span class="hidden sm:inline-block text-[10px] font-bold text-blue-100 uppercase tracking-widest pl-3 border-l border-white/30">
           Jornalismo em Tempo Real
         </span>
       </div>
@@ -72,14 +72,14 @@ const isCurrent = (href: string) => {
       <div class="flex items-center gap-2.5 sm:gap-3">
         <a 
           href="/admin" 
-          class="text-xs font-mono font-bold bg-white text-[#0F172A] hover:bg-slate-100 border border-transparent px-4 py-1.5 rounded-full transition-all flex items-center gap-2 shadow-xs"
+          class="text-xs font-mono font-bold bg-white text-[#0077B6] hover:bg-blue-50 border border-transparent px-4 py-1.5 rounded-full transition-all flex items-center gap-2 shadow-xs"
           title="Acessar Painel de Redação e Gerenciamento"
         >
-          <span class="w-2 h-2 rounded-full bg-[#0F172A]"></span>
+          <span class="w-2 h-2 rounded-full bg-[#0077B6]"></span>
           <span>PAINEL ADMIN</span>
         </a>
 
-        <div class="hidden sm:flex text-xs font-mono font-bold bg-slate-800/90 text-slate-200 border border-slate-700 px-3.5 py-1.5 rounded-full tracking-tight items-center gap-2 shadow-xs">
+        <div class="hidden sm:flex text-xs font-mono font-bold bg-[#023E8A] text-white border border-white/20 px-3.5 py-1.5 rounded-full tracking-tight items-center gap-2 shadow-xs">
           <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
           <span>LIVE: SSR OK</span>
         </div>
@@ -88,9 +88,9 @@ const isCurrent = (href: string) => {
   </div>
 
   {/* =========================================================================
-      BARRA DE MENU SUPERIOR (FUNDO BRANCO LIMPO, SEM A COR AZUL NO CONTAINER)
+      BARRA DE MENU SUPERIOR (CINZA-GELO / OFF-WHITE #F1F5F9 / #E2E8F0)
   ========================================================================= */}
-  <div class="sticky top-0 z-40 bg-white text-neutral-800 border-b border-neutral-200 shadow-xs">
+  <div class="sticky top-0 z-40 bg-[#F1F5F9] text-slate-800 border-b border-[#E2E8F0] shadow-xs">
     <div class="max-w-7xl mx-auto px-4 sm:px-8 py-2.5 flex items-center justify-between gap-4">
       
       {/* Menu Superior Desktop */}
@@ -102,8 +102,8 @@ const isCurrent = (href: string) => {
               href={cat.href}
               class={`px-3 xl:px-3.5 py-1.5 rounded-full text-[11px] xl:text-xs font-bold uppercase tracking-wider shrink-0 transition-all duration-150 ${
                 active
-                  ? 'bg-[#0F172A] text-white shadow-xs'
-                  : 'text-neutral-700 hover:text-[#0F172A] hover:bg-neutral-100 font-bold'
+                  ? 'bg-[#0077B6] text-white shadow-xs'
+                  : 'text-slate-700 hover:text-[#0077B6] hover:bg-white font-bold'
               }`}
             >
               {cat.name}
@@ -114,11 +114,11 @@ const isCurrent = (href: string) => {
 
       {/* Tags Rápidas em Destaque no Menu Superior */}
       <div class="hidden xl:flex items-center gap-2 text-xs font-medium">
-        <span class="text-[10px] font-mono font-bold text-[#0F172A] uppercase">Tópicos:</span>
+        <span class="text-[10px] font-mono font-bold text-slate-500 uppercase">Tópicos:</span>
         {trendingTags.map((tag) => (
           <a
             href={tag.href}
-            class="px-2.5 py-1 rounded-full bg-neutral-100 hover:bg-slate-100 text-neutral-600 hover:text-[#0F172A] border border-neutral-200 hover:border-slate-300 text-[11px] font-semibold transition-all"
+            class="px-2.5 py-1 rounded-full bg-white hover:bg-slate-200/80 text-slate-700 hover:text-[#0077B6] border border-[#E2E8F0] text-[11px] font-semibold transition-all shadow-2xs"
           >
             #{tag.name}
           </a>
@@ -135,8 +135,8 @@ const isCurrent = (href: string) => {
                 href={cat.href}
                 class={`px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider shrink-0 transition-all ${
                   active
-                    ? 'bg-[#0F172A] text-white shadow-xs'
-                    : 'text-neutral-700 hover:text-[#0F172A] hover:bg-neutral-100'
+                    ? 'bg-[#0077B6] text-white shadow-xs'
+                    : 'text-slate-700 hover:text-[#0077B6] hover:bg-white'
                 }`}
               >
                 {cat.name}
