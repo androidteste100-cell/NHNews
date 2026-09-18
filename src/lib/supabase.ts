@@ -1052,6 +1052,101 @@ export async function deleteNoticia(
 }
 
 /**
+ * Exclui múltiplas notícias selecionadas em lote pelo ID.
+ */
+export async function deleteMultipleNoticias(
+  ids: string[]
+): Promise<{ success: boolean; count: number; error: string | null }> {
+  if (!ids || ids.length === 0) {
+    return { success: true, count: 0, error: null };
+  }
+
+  const beforeCount = mockNoticiasList.length;
+  mockNoticiasList = mockNoticiasList.filter((n) => !ids.includes(n.id));
+  const removedFromMock = beforeCount - mockNoticiasList.length;
+
+  if (!isConfigured) {
+    return { success: true, count: removedFromMock, error: null };
+  }
+
+  try {
+    const primaryClient = supabaseServiceKey ? supabaseAdmin : supabase;
+    let { error, count } = await primaryClient
+      .from('noticias')
+      .delete({ count: 'exact' })
+      .in('id', ids);
+
+    if (error && primaryClient !== supabase) {
+      const anonAttempt = await supabase
+        .from('noticias')
+        .delete({ count: 'exact' })
+        .in('id', ids);
+      if (!anonAttempt.error) {
+        error = null;
+        count = anonAttempt.count;
+      }
+    }
+
+    if (error) {
+      return { success: false, count: 0, error: error.message };
+    }
+
+    isTableMissing = false;
+    return { success: true, count: count ?? ids.length, error: null };
+  } catch (err: any) {
+    return { success: false, count: 0, error: err?.message || 'Erro ao excluir notícias selecionadas.' };
+  }
+}
+
+/**
+ * Atualiza o status de publicação (publicado / rascunho) de múltiplas notícias selecionadas.
+ */
+export async function updateMultipleNoticiasStatus(
+  ids: string[],
+  publicado: boolean
+): Promise<{ success: boolean; count: number; error: string | null }> {
+  if (!ids || ids.length === 0) {
+    return { success: true, count: 0, error: null };
+  }
+
+  mockNoticiasList.forEach((n) => {
+    if (ids.includes(n.id)) {
+      n.publicado = publicado;
+    }
+  });
+
+  if (!isConfigured) {
+    return { success: true, count: ids.length, error: null };
+  }
+
+  try {
+    const primaryClient = supabaseServiceKey ? supabaseAdmin : supabase;
+    let { error, count } = await primaryClient
+      .from('noticias')
+      .update({ publicado, updated_at: new Date().toISOString() })
+      .in('id', ids);
+
+    if (error && primaryClient !== supabase) {
+      const anonAttempt = await supabase
+        .from('noticias')
+        .update({ publicado, updated_at: new Date().toISOString() })
+        .in('id', ids);
+      if (!anonAttempt.error) {
+        error = null;
+      }
+    }
+
+    if (error) {
+      return { success: false, count: 0, error: error.message };
+    }
+
+    return { success: true, count: count ?? ids.length, error: null };
+  } catch (err: any) {
+    return { success: false, count: 0, error: err?.message || 'Erro ao atualizar status das notícias.' };
+  }
+}
+
+/**
  * Remove TODAS as notícias cadastradas no portal (banco Supabase e lista local).
  */
 export async function deleteAllNoticias(): Promise<{ success: boolean; count: number; error: string | null }> {

@@ -5,8 +5,10 @@ import {
   createNoticia,
   updateNoticia,
   deleteNoticia,
+  deleteMultipleNoticias,
   deleteAllNoticias,
   toggleNoticiaStatus,
+  updateMultipleNoticiasStatus,
 } from '../../../lib/supabase';
 import type { NoticiaInsert, NoticiaUpdate } from '../../../types/database.types';
 
@@ -221,6 +223,7 @@ export const DELETE: APIRoute = async ({ request, cookies }) => {
   try {
     const url = new URL(request.url);
     const id = url.searchParams.get('id');
+    const idsParam = url.searchParams.get('ids');
     const all = url.searchParams.get('all') === 'true' || url.searchParams.get('all') === '1';
 
     // Exclusão em lote de todas as matérias
@@ -235,6 +238,33 @@ export const DELETE: APIRoute = async ({ request, cookies }) => {
       }
 
       return new Response(JSON.stringify({ success: true, count, message: 'Todas as notícias foram excluídas com sucesso.' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Suporte a exclusão de múltiplos IDs via JSON body ou query param `ids`
+    let targetIds: string[] = [];
+    if (idsParam) {
+      targetIds = idsParam.split(',').map((s) => s.trim()).filter(Boolean);
+    } else {
+      try {
+        const body = await request.json();
+        if (Array.isArray(body?.ids)) {
+          targetIds = body.ids.map((s: any) => String(s).trim()).filter(Boolean);
+        }
+      } catch {}
+    }
+
+    if (targetIds.length > 0) {
+      const { success, count, error } = await deleteMultipleNoticias(targetIds);
+      if (!success || error) {
+        return new Response(JSON.stringify({ error: error || 'Não foi possível excluir as notícias selecionadas.' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({ success: true, count, message: `${count} notícia(s) excluída(s) com sucesso.` }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -269,7 +299,7 @@ export const DELETE: APIRoute = async ({ request, cookies }) => {
 };
 
 /**
- * PATCH: Alterna status de publicação
+ * PATCH: Alterna status de publicação (individual ou em lote)
  */
 export const PATCH: APIRoute = async ({ request, cookies }) => {
   if (!isAdminAuthenticated(cookies, request)) {
@@ -281,10 +311,33 @@ export const PATCH: APIRoute = async ({ request, cookies }) => {
 
   try {
     const body = await request.json();
-    const { id, publicado } = body;
+    const { id, ids, publicado } = body;
 
-    if (!id || publicado === undefined) {
-      return new Response(JSON.stringify({ error: 'Parâmetros inválidos.' }), {
+    if (publicado === undefined) {
+      return new Response(JSON.stringify({ error: 'Status de publicação é obrigatório.' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Suporte a alteração em lote de múltiplos IDs
+    if (Array.isArray(ids) && ids.length > 0) {
+      const cleanIds = ids.map((s: any) => String(s).trim()).filter(Boolean);
+      const { success, count, error } = await updateMultipleNoticiasStatus(cleanIds, Boolean(publicado));
+      if (!success || error) {
+        return new Response(JSON.stringify({ error: error || 'Falha ao alterar status em lote.' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({ success: true, count }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!id) {
+      return new Response(JSON.stringify({ error: 'ID da notícia é obrigatório.' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });

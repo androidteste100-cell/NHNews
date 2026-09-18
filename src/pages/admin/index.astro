@@ -311,6 +311,67 @@ const tableMissing = isSupabaseTableMissing();
         </div>
 
         {/* =========================================================================
+            BARRA DE AÇÕES EM LOTE (SELEÇÃO MÚLTIPLA DE NOTÍCIAS)
+        ========================================================================= */}
+        <div
+          id="bulk-actions-bar"
+          class="hidden bg-blue-50 dark:bg-blue-950/40 border-2 border-blue-500 dark:border-blue-600 rounded-xl p-3 sm:p-4 items-center justify-between gap-3 transition-all"
+        >
+          <div class="flex items-center gap-3 flex-wrap">
+            <span class="inline-flex items-center gap-1.5 font-bold text-xs text-blue-950 dark:text-blue-100 bg-blue-100 dark:bg-blue-900/60 px-2.5 py-1 rounded-md">
+              <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+              <span id="selected-count" class="font-mono font-black">0</span>
+              <span>notícia(s) selecionada(s)</span>
+            </span>
+            <button
+              type="button"
+              id="btn-select-all-inline"
+              class="text-xs font-bold text-blue-700 dark:text-blue-300 hover:text-blue-950 dark:hover:text-white underline cursor-pointer"
+            >
+              Selecionar todas
+            </button>
+            <span class="text-neutral-300 dark:text-neutral-600">|</span>
+            <button
+              type="button"
+              id="btn-clear-selection"
+              class="text-xs font-bold text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white cursor-pointer"
+            >
+              Desmarcar todas
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              id="btn-publish-selected"
+              class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+              title="Publicar matérias selecionadas"
+            >
+              <span>👁️</span>
+              <span>Publicar</span>
+            </button>
+            <button
+              type="button"
+              id="btn-draft-selected"
+              class="px-3 py-1.5 bg-neutral-700 hover:bg-neutral-800 text-white font-black text-xs uppercase tracking-wider rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+              title="Mudar status para rascunho"
+            >
+              <span>📝</span>
+              <span>Rascunho</span>
+            </button>
+            <button
+              type="button"
+              id="btn-delete-selected"
+              class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+              title="Excluir matérias selecionadas permanentemente"
+            >
+              <span>🗑️</span>
+              <span>Apagar Selecionadas (<span id="delete-selected-count">0</span>)</span>
+            </button>
+          </div>
+        </div>
+
+        {/* =========================================================================
             TABELA DE NOTÍCIAS
         ========================================================================= */}
         <div class="bg-white dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 rounded-xl overflow-hidden shadow-none">
@@ -318,11 +379,19 @@ const tableMissing = isSupabaseTableMissing();
             <table class="w-full text-left border-collapse" id="noticias-table">
               <thead>
                 <tr class="bg-neutral-100 dark:bg-neutral-800/80 border-b-2 border-black dark:border-neutral-700 text-[10px] font-black uppercase tracking-wider text-neutral-600 dark:text-neutral-300">
+                  <th class="py-3 px-3 w-10 text-center">
+                    <input
+                      type="checkbox"
+                      id="select-all-checkbox"
+                      class="w-4 h-4 rounded border-2 border-neutral-400 dark:border-neutral-500 text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600"
+                      title="Selecionar todas as notícias visíveis"
+                    />
+                  </th>
                   <th class="py-3 px-4">Imagem</th>
                   <th class="py-3 px-4">Título & Slug</th>
                   <th class="py-3 px-4">Categoria</th>
                   <th class="py-3 px-4">Autor</th>
-                  <th class="py-3 px-4">Data</th>
+                  <th class="py-3 px-4">Data & Horário</th>
                   <th class="py-3 px-4 text-center">Status</th>
                   <th class="py-3 px-4 text-right">Ações</th>
                 </tr>
@@ -330,6 +399,15 @@ const tableMissing = isSupabaseTableMissing();
               <tbody class="divide-y divide-gray-200 dark:divide-neutral-800 text-xs" id="table-body">
                 {noticias.map((item) => (
                   <tr class="noticia-row hover:bg-gray-50 dark:hover:bg-neutral-800/40 transition-colors" data-id={item.id} data-categoria={item.categoria} data-category-slug={item.category_slug || ''} data-publicado={item.publicado ? 'publicado' : 'rascunho'} data-titulo={item.titulo.toLowerCase()} data-autor={(item.autor || '').toLowerCase()}>
+                    <td class="py-3 px-3 w-10 text-center">
+                      <input
+                        type="checkbox"
+                        class="noticia-checkbox w-4 h-4 rounded border-2 border-neutral-300 dark:border-neutral-600 text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600"
+                        value={item.id}
+                        data-id={item.id}
+                        data-titulo={item.titulo}
+                      />
+                    </td>
                     <td class="py-3 px-4 w-16">
                       <div class="w-12 h-9 rounded bg-neutral-200 dark:bg-neutral-700 overflow-hidden border border-black dark:border-neutral-600 shrink-0">
                         <img src={item.imagem} alt="" class="w-full h-full object-cover" loading="lazy" />
@@ -352,7 +430,13 @@ const tableMissing = isSupabaseTableMissing();
                       {item.autor || 'Redação'}
                     </td>
                     <td class="py-3 px-4 text-gray-500 dark:text-neutral-400 font-mono text-[11px] whitespace-nowrap">
-                      {new Date(item.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                      <div class="font-bold text-neutral-900 dark:text-neutral-200">
+                        {new Date(item.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                      </div>
+                      <div class="text-[10px] text-neutral-400 dark:text-neutral-500 flex items-center gap-1 mt-0.5 font-sans font-medium">
+                        <span>⏰</span>
+                        <span>{new Date(item.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
                     </td>
                     <td class="py-3 px-4 text-center whitespace-nowrap">
                       <button
@@ -1140,11 +1224,220 @@ git push -u origin main</pre>
         emptyState.classList.add('hidden');
       }
     }
+
+    // Mantém a seleção sincronizada com as linhas filtradas
+    updateSelectionUI();
   }
 
   searchInput?.addEventListener('input', filterTable);
   categoryFilter?.addEventListener('change', filterTable);
   statusFilter?.addEventListener('change', filterTable);
+
+  // --------------------------------------------------------------------------
+  // 2.1 Seleção Múltipla de Notícias (Selecionar Todas & Ações em Lote)
+  // --------------------------------------------------------------------------
+  const selectAllCheckbox = document.getElementById('select-all-checkbox');
+  const bulkActionsBar = document.getElementById('bulk-actions-bar');
+  const selectedCountEl = document.getElementById('selected-count');
+  const deleteSelectedCountEl = document.getElementById('delete-selected-count');
+  const btnSelectAllInline = document.getElementById('btn-select-all-inline');
+  const btnClearSelection = document.getElementById('btn-clear-selection');
+  const btnPublishSelected = document.getElementById('btn-publish-selected');
+  const btnDraftSelected = document.getElementById('btn-draft-selected');
+  const btnDeleteSelected = document.getElementById('btn-delete-selected');
+
+  function getVisibleRows() {
+    return Array.from(document.querySelectorAll('.noticia-row')).filter(
+      (row) => row.style.display !== 'none'
+    );
+  }
+
+  function getSelectedCheckboxes() {
+    return Array.from(document.querySelectorAll('.noticia-checkbox:checked'));
+  }
+
+  function getSelectedIds() {
+    return getSelectedCheckboxes().map((cb) => cb.value).filter(Boolean);
+  }
+
+  function updateSelectionUI() {
+    const visibleRows = getVisibleRows();
+    const visibleCheckboxes = visibleRows.map((r) => r.querySelector('.noticia-checkbox')).filter(Boolean);
+    const checkedVisible = visibleCheckboxes.filter((cb) => cb.checked);
+    const totalSelected = getSelectedCheckboxes();
+    const count = totalSelected.length;
+
+    // Atualiza contadores visuais
+    if (selectedCountEl) selectedCountEl.innerText = String(count);
+    if (deleteSelectedCountEl) deleteSelectedCountEl.innerText = String(count);
+
+    // Exibe ou oculta barra de ações em lote
+    if (bulkActionsBar) {
+      if (count > 0) {
+        bulkActionsBar.classList.remove('hidden');
+        bulkActionsBar.classList.add('flex');
+      } else {
+        bulkActionsBar.classList.add('hidden');
+        bulkActionsBar.classList.remove('flex');
+      }
+    }
+
+    // Atualiza estado do checkbox mestre (cabeçalho)
+    if (selectAllCheckbox) {
+      if (visibleCheckboxes.length > 0 && checkedVisible.length === visibleCheckboxes.length) {
+        selectAllCheckbox.checked = true;
+        selectAllCheckbox.indeterminate = false;
+      } else if (checkedVisible.length > 0) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = true;
+      } else {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+      }
+    }
+
+    // Realce visual nas linhas selecionadas
+    document.querySelectorAll('.noticia-row').forEach((row) => {
+      const cb = row.querySelector('.noticia-checkbox');
+      if (cb && cb.checked) {
+        row.classList.add('bg-blue-50/70', 'dark:bg-blue-950/30');
+      } else {
+        row.classList.remove('bg-blue-50/70', 'dark:bg-blue-950/30');
+      }
+    });
+  }
+
+  // Marcar / Desmarcar todas as notícias visíveis ao clicar no checkbox do cabeçalho
+  selectAllCheckbox?.addEventListener('change', () => {
+    const shouldCheck = selectAllCheckbox.checked;
+    const visibleRows = getVisibleRows();
+    visibleRows.forEach((row) => {
+      const cb = row.querySelector('.noticia-checkbox');
+      if (cb) cb.checked = shouldCheck;
+    });
+    updateSelectionUI();
+  });
+
+  // Botão inline "Selecionar todas" na barra de ações
+  btnSelectAllInline?.addEventListener('click', () => {
+    const visibleRows = getVisibleRows();
+    visibleRows.forEach((row) => {
+      const cb = row.querySelector('.noticia-checkbox');
+      if (cb) cb.checked = true;
+    });
+    if (selectAllCheckbox) {
+      selectAllCheckbox.checked = true;
+      selectAllCheckbox.indeterminate = false;
+    }
+    updateSelectionUI();
+  });
+
+  // Botão "Desmarcar todas"
+  btnClearSelection?.addEventListener('click', () => {
+    document.querySelectorAll('.noticia-checkbox').forEach((cb) => {
+      cb.checked = false;
+    });
+    if (selectAllCheckbox) {
+      selectAllCheckbox.checked = false;
+      selectAllCheckbox.indeterminate = false;
+    }
+    updateSelectionUI();
+  });
+
+  // Mudança em cada checkbox individual
+  document.querySelectorAll('.noticia-checkbox').forEach((cb) => {
+    cb.addEventListener('change', updateSelectionUI);
+  });
+
+  // Excluir selecionadas em lote
+  btnDeleteSelected?.addEventListener('click', async () => {
+    const ids = getSelectedIds();
+    if (ids.length === 0) {
+      alert('Nenhuma matéria selecionada para exclusão.');
+      return;
+    }
+
+    const confirmDelete = confirm(
+      `🗑️ Excluir ${ids.length} matéria(s) selecionada(s)?\n\nEsta operação é irreversível e removerá as publicações selecionadas do banco de dados.`
+    );
+    if (!confirmDelete) return;
+
+    btnDeleteSelected.setAttribute('disabled', 'true');
+    const originalText = btnDeleteSelected.innerHTML;
+    btnDeleteSelected.innerHTML = '<span>⏳</span><span>Excluindo...</span>';
+
+    try {
+      const res = await fetch('/api/admin/noticias', {
+        method: 'DELETE',
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ ids }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Falha ao excluir matérias selecionadas.');
+
+      alert(data.message || `${ids.length} matéria(s) excluída(s) com sucesso!`);
+      reloadWithAuth();
+    } catch (err) {
+      alert(err.message || 'Erro inesperado ao excluir matérias.');
+      btnDeleteSelected.removeAttribute('disabled');
+      btnDeleteSelected.innerHTML = originalText;
+    }
+  });
+
+  // Publicar selecionadas em lote
+  btnPublishSelected?.addEventListener('click', async () => {
+    const ids = getSelectedIds();
+    if (ids.length === 0) return;
+
+    btnPublishSelected.setAttribute('disabled', 'true');
+    const originalText = btnPublishSelected.innerHTML;
+    btnPublishSelected.innerHTML = '<span>⏳</span><span>Publicando...</span>';
+
+    try {
+      const res = await fetch('/api/admin/noticias', {
+        method: 'PATCH',
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ ids, publicado: true }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Falha ao publicar matérias selecionadas.');
+
+      reloadWithAuth();
+    } catch (err) {
+      alert(err.message || 'Erro ao publicar matérias selecionadas.');
+      btnPublishSelected.removeAttribute('disabled');
+      btnPublishSelected.innerHTML = originalText;
+    }
+  });
+
+  // Tornar rascunho selecionadas em lote
+  btnDraftSelected?.addEventListener('click', async () => {
+    const ids = getSelectedIds();
+    if (ids.length === 0) return;
+
+    btnDraftSelected.setAttribute('disabled', 'true');
+    const originalText = btnDraftSelected.innerHTML;
+    btnDraftSelected.innerHTML = '<span>⏳</span><span>Alterando...</span>';
+
+    try {
+      const res = await fetch('/api/admin/noticias', {
+        method: 'PATCH',
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ ids, publicado: false }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Falha ao alterar status das matérias selecionadas.');
+
+      reloadWithAuth();
+    } catch (err) {
+      alert(err.message || 'Erro ao alterar status.');
+      btnDraftSelected.removeAttribute('disabled');
+      btnDraftSelected.innerHTML = originalText;
+    }
+  });
 
   // --------------------------------------------------------------------------
   // 3. Modal de Criação / Edição de Notícias

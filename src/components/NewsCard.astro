@@ -22,12 +22,19 @@ const safeSlug = (noticia.slug && noticia.slug.trim().replace(/^\/+|\/+$/g, ''))
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?q=80&w=1200&auto=format&fit=crop';
 const safeImage = (noticia.imagem && noticia.imagem.trim()) || DEFAULT_IMAGE;
 
-// Formatação amigável de data em português
-const dateFormatted = new Date(noticia.created_at || Date.now()).toLocaleDateString('pt-BR', {
+// Formatação amigável de data e hora em português
+const dateObj = new Date(noticia.created_at || Date.now());
+const validDate = isNaN(dateObj.getTime()) ? new Date() : dateObj;
+const dateFormatted = validDate.toLocaleDateString('pt-BR', {
   day: '2-digit',
   month: '2-digit',
   year: 'numeric',
 });
+const timeFormatted = validDate.toLocaleTimeString('pt-BR', {
+  hour: '2-digit',
+  minute: '2-digit',
+});
+const dateTimeFormatted = `${dateFormatted} às ${timeFormatted}`;
 
 // Categoria normalizada e estilo temático específico
 const catStyle = getCategoryStyle(noticia.categoria, noticia.titulo);
@@ -84,7 +91,7 @@ const catStyle = getCategoryStyle(noticia.categoria, noticia.titulo);
           <div class="flex items-center gap-2">
             <span>Por <strong class="text-white font-semibold">{noticia.autor || 'Redação'}</strong></span>
             <span>•</span>
-            <time datetime={noticia.created_at}>{dateFormatted}</time>
+            <time datetime={noticia.created_at}>{dateTimeFormatted}</time>
           </div>
           <span class="text-white group-hover:text-neutral-200 font-bold transition-colors flex items-center gap-1">
             Ler completa →
@@ -128,8 +135,8 @@ const catStyle = getCategoryStyle(noticia.categoria, noticia.titulo);
     </div>
 
     <div class="pt-2 mt-2 border-t border-neutral-100 flex items-center justify-between text-[11px] text-neutral-500 font-medium">
-      <span class="truncate max-w-[120px]">{noticia.autor || 'Redação'}</span>
-      <time datetime={noticia.created_at}>{dateFormatted}</time>
+      <span class="truncate max-w-[110px]">{noticia.autor || 'Redação'}</span>
+      <time datetime={noticia.created_at} class="shrink-0">{dateTimeFormatted}</time>
     </div>
   </article>
 ) : variant === 'ranked' ? (
@@ -163,7 +170,7 @@ const catStyle = getCategoryStyle(noticia.categoria, noticia.titulo);
         </a>
       </h4>
       <div class="flex items-center gap-2 text-[10px] text-neutral-400 mt-1">
-        <time datetime={noticia.created_at}>{dateFormatted}</time>
+        <time datetime={noticia.created_at}>{dateTimeFormatted}</time>
       </div>
     </div>
   </article>
@@ -209,7 +216,7 @@ const catStyle = getCategoryStyle(noticia.categoria, noticia.titulo);
         )}
       </div>
       <div class="flex items-center justify-between mt-2 pt-2 border-t border-neutral-100 text-[11px] text-neutral-500">
-        <time datetime={noticia.created_at}>{dateFormatted}</time>
+        <time datetime={noticia.created_at}>{dateTimeFormatted}</time>
         <span class={`font-bold ${catStyle.text} group-hover:translate-x-1 transition-transform flex items-center gap-1 text-xs`}>
           Ler matéria <span>→</span>
         </span>
@@ -253,7 +260,7 @@ const catStyle = getCategoryStyle(noticia.categoria, noticia.titulo);
       </div>
     </div>
     <div class="px-4 sm:px-5 pb-4 pt-3 border-t border-neutral-100 flex justify-between items-center text-[11px] text-neutral-500">
-      <span>{noticia.autor || 'Redação'} • {dateFormatted}</span>
+      <span>{noticia.autor || 'Redação'} • {dateTimeFormatted}</span>
       <a href={`/noticia/${safeSlug}`} class={`w-7 h-7 rounded-full bg-neutral-100 text-neutral-700 ${catStyle.hoverBg} hover:text-white flex items-center justify-center text-xs transition-colors focus:outline-none`} aria-label="Abrir matéria">
         →
       </a>
