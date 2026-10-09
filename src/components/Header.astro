@@ -1,5 +1,6 @@
 ---
 import AdBanner from './AdBanner.astro';
+import Logo from './Logo.astro';
 import { OFFICIAL_CATEGORIES } from '../lib/categories';
 
 const navCategories = [
@@ -54,33 +55,36 @@ const isCurrent = (href: string) => {
     </div>
   </div>
 
-  {/* Barra Principal da Marca (Cabeçalho em Azul Pacífico / Oceano #0077B6) */}
-  <div class="w-full bg-[#0077B6] text-white shadow-xs border-b border-[#005F92]">
-    <div class="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex items-center justify-between gap-4">
+  {/* Barra Principal da Marca (Fundo Branco Limpo - Preserva 100% as Cores Oficiais do Logo) */}
+  <div class="w-full bg-white text-slate-900 shadow-2xs border-b border-neutral-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8 py-3 sm:py-3.5 flex items-center justify-between gap-4">
       <div class="flex items-center gap-4">
-        <a href="/" class="group flex items-center gap-2">
-          <div class="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tighter uppercase italic text-white drop-shadow-xs">
-            PORTAL<span class="text-amber-300">NOTÍCIAS</span>
-          </div>
+        <a href="/" class="group flex items-center gap-3 transition-transform hover:scale-[1.01]" title="HNEWS ALAGOAS — Início">
+          <Logo variant="stacked" theme="original" height={84} class="shrink-0" />
         </a>
-        <span class="hidden sm:inline-block text-[10px] font-bold text-blue-100 uppercase tracking-widest pl-3 border-l border-white/30">
-          Jornalismo em Tempo Real
-        </span>
+        <div class="hidden sm:flex flex-col justify-center pl-3.5 border-l-2 border-neutral-200 py-1">
+          <span class="text-[11px] font-bold text-slate-600 uppercase tracking-widest leading-tight">
+            Jornalismo em Tempo Real
+          </span>
+          <span class="text-[9px] font-semibold text-slate-400 uppercase tracking-wider">
+            Alagoas & Brasil
+          </span>
+        </div>
       </div>
 
       {/* Ações e Status */}
       <div class="flex items-center gap-2.5 sm:gap-3">
         <a 
           href="/admin" 
-          class="text-xs font-mono font-bold bg-white text-[#0077B6] hover:bg-blue-50 border border-transparent px-4 py-1.5 rounded-full transition-all flex items-center gap-2 shadow-xs"
+          class="text-xs font-mono font-bold bg-[#BA2327] hover:bg-[#9B1C20] text-white border border-transparent px-4 py-2 rounded-full transition-all flex items-center gap-2 shadow-xs"
           title="Acessar Painel de Redação e Gerenciamento"
         >
-          <span class="w-2 h-2 rounded-full bg-[#0077B6]"></span>
+          <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
           <span>PAINEL ADMIN</span>
         </a>
 
-        <div class="hidden sm:flex text-xs font-mono font-bold bg-[#023E8A] text-white border border-white/20 px-3.5 py-1.5 rounded-full tracking-tight items-center gap-2 shadow-xs">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        <div class="hidden sm:flex text-xs font-mono font-bold bg-slate-100 text-slate-700 border border-slate-300 px-3.5 py-1.5 rounded-full tracking-tight items-center gap-2 shadow-2xs">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
           <span>LIVE: SSR OK</span>
         </div>
       </div>

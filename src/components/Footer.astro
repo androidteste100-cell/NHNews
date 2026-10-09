@@ -1,5 +1,6 @@
 ---
 import AdBanner from './AdBanner.astro';
+import Logo from './Logo.astro';
 import { OFFICIAL_CATEGORIES } from '../lib/categories';
 
 const currentYear = new Date().getFullYear();
@@ -79,10 +80,8 @@ const currentYear = new Date().getFullYear();
     {/* Grid de Informações Bento */}
     <div class="grid grid-cols-1 md:grid-cols-4 gap-8 pb-10 border-b border-neutral-800">
       <div class="md:col-span-2">
-        <div class="flex items-center gap-2 mb-3">
-          <div class="text-2xl font-black tracking-tighter uppercase italic text-white">
-            PORTAL<span class="text-[#dd3333]">NOTÍCIAS</span>
-          </div>
+        <div class="flex items-center gap-2 mb-3 bg-white px-3.5 py-2 rounded-2xl w-fit shadow-xs">
+          <Logo variant="stacked" height={54} />
         </div>
         <p class="text-sm text-neutral-400 max-w-md leading-relaxed">
           Portal de notícias automatizado de última geração com Astro SSR, Supabase e Vercel. 

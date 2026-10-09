@@ -1,4 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
-  <rect width="32" height="32" rx="8" fill="#0284c7" />
-  <path d="M9 23V9h3.2l7.8 9.5V9h3v14h-3.2L12 13.5V23H9z" fill="#ffffff" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="fav-h-front" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C72A2E"/>
+      <stop offset="100%" stop-color="#AA1E22"/>
+    </linearGradient>
+    <linearGradient id="fav-h-shadow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7F1518"/>
+      <stop offset="100%" stop-color="#671012"/>
+    </linearGradient>
+    <linearGradient id="fav-n-shadow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1A3B5C"/>
+      <stop offset="100%" stop-color="#132D47"/>
+    </linearGradient>
+    <linearGradient id="fav-n-front" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#326396"/>
+      <stop offset="100%" stop-color="#26507C"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="256" height="256" rx="56" fill="#0B132B" />
+
+  <g transform="translate(24, 48) scale(0.95)">
+    <!-- H Front -->
+    <path d="M 10 10 L 44 10 L 44 60 L 80 60 L 80 92 L 44 92 L 44 133 L 10 118 Z" fill="url(#fav-h-front)"/>
+    <!-- H Shadow -->
+    <path d="M 80 10 L 114 10 L 114 148 L 80 133 L 80 92 L 80 60 Z" fill="url(#fav-h-shadow)"/>
+    <!-- N Shadow -->
+    <path d="M 114 10 L 148 10 L 148 133 L 114 148 Z" fill="url(#fav-n-shadow)"/>
+    <!-- N Front -->
+    <path d="M 114 10 L 148 10 L 182 70 L 182 10 L 216 10 L 216 118 L 182 133 L 148 78 L 148 133 L 114 148 Z" fill="url(#fav-n-front)"/>
+  </g>
 </svg>

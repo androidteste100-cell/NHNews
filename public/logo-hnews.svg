@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 328 216" width="328" height="216" style="background: transparent;">
+  <defs>
+    <linearGradient id="h-front" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C72A2E"/>
+      <stop offset="100%" stop-color="#AA1E22"/>
+    </linearGradient>
+    <linearGradient id="h-shadow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7F1518"/>
+      <stop offset="100%" stop-color="#671012"/>
+    </linearGradient>
+    <linearGradient id="n-shadow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#142C44"/>
+      <stop offset="100%" stop-color="#0E2033"/>
+    </linearGradient>
+    <linearGradient id="n-front" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2D5C8F"/>
+      <stop offset="100%" stop-color="#1E3E63"/>
+    </linearGradient>
+    <filter id="hnews-depth" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <g id="hnews-emblem" filter="url(#hnews-depth)">
+    <g id="h-letter">
+      <path d="M 60 15 L 94 15 L 94 66 L 130 66 L 130 98 L 94 98 L 94 138 L 60 122 Z" fill="url(#h-front)"/>
+      <path d="M 130 15 L 164 15 L 164 154 L 130 138 L 130 98 L 130 66 Z" fill="url(#h-shadow)"/>
+    </g>
+
+    <g id="n-letter">
+      <path d="M 164 15 L 198 15 L 198 138 L 164 154 Z" fill="url(#n-shadow)"/>
+      <path d="M 198 15 L 234 98 L 234 15 L 268 15 L 268 122 L 234 138 L 198 55 Z" fill="url(#n-front)"/>
+    </g>
+  </g>
+
+  <g id="text" font-family="'Montserrat', 'Arial Black', system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-weight="900" font-size="24" letter-spacing="3">
+    <text x="46" y="196" fill="#BA2327">HNEWS</text>
+    <text x="156" y="196" fill="#234A75">ALAGOAS</text>
+  </g>
+</svg>

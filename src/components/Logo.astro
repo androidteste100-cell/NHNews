@@ -1,0 +1,133 @@
+---
+interface Props {
+  variant?: 'stacked' | 'horizontal';
+  theme?: 'original' | 'on-dark';
+  height?: number | string;
+  class?: string;
+}
+
+const {
+  variant = 'stacked',
+  theme = 'original',
+  height = 76,
+  class: className = '',
+} = Astro.props;
+
+// Cores Oficiais e Autênticas da Identidade Visual HNEWS ALAGOAS
+// Preservadas rigorosamente sem distorção ou clareamento indevido
+const textColorRed = '#BA2327';
+const textColorBlue = '#234A75';
+---
+
+{variant === 'stacked' ? (
+  <div 
+    class={`inline-flex flex-col items-center justify-center select-none bg-transparent ${className}`} 
+    style={{ height: typeof height === 'number' ? `${height}px` : height }}
+  >
+    <svg
+      viewBox="0 0 328 216"
+      class="h-full w-auto max-h-full"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="HNEWS ALAGOAS"
+      style="background: transparent;"
+    >
+      <defs>
+        <!-- Gradientes 3D para o H (Vermelho Oficial) -->
+        <linearGradient id="hn-h-front" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#C72A2E"/>
+          <stop offset="100%" stop-color="#AA1E22"/>
+        </linearGradient>
+        <linearGradient id="hn-h-shadow" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#7F1518"/>
+          <stop offset="100%" stop-color="#671012"/>
+        </linearGradient>
+
+        <!-- Gradientes 3D para o N (Azul Marinho Oficial) -->
+        <linearGradient id="hn-n-shadow" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#142C44"/>
+          <stop offset="100%" stop-color="#0E2033"/>
+        </linearGradient>
+        <linearGradient id="hn-n-front" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#2D5C8F"/>
+          <stop offset="100%" stop-color="#1E3E63"/>
+        </linearGradient>
+
+        <!-- Sombra sutil para profundidade 3D -->
+        <filter id="hn-depth" x="-10%" y="-10%" width="120%" height="120%">
+          <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" flood-opacity="0.15"/>
+        </filter>
+      </defs>
+
+      <!-- Emblema HN 3D Facetado (Cores Autênticas Fielmente Preservadas com Fundo 100% Transparente) -->
+      <g filter="url(#hn-depth)">
+        <!-- Letra H (Vermelho) -->
+        <path d="M 60 15 L 94 15 L 94 66 L 130 66 L 130 98 L 94 98 L 94 138 L 60 122 Z" fill="url(#hn-h-front)"/>
+        <path d="M 130 15 L 164 15 L 164 154 L 130 138 L 130 98 L 130 66 Z" fill="url(#hn-h-shadow)"/>
+
+        <!-- Letra N (Azul Marinho) -->
+        <path d="M 164 15 L 198 15 L 198 138 L 164 154 Z" fill="url(#hn-n-shadow)"/>
+        <path d="M 198 15 L 234 98 L 234 15 L 268 15 L 268 122 L 234 138 L 198 55 Z" fill="url(#hn-n-front)"/>
+      </g>
+
+      <!-- Tipografia Oficial HNEWS ALAGOAS (Vermelho e Azul Marinho Oficiais) -->
+      <g font-family="'Montserrat', 'Arial Black', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="900" font-size="24" letter-spacing="3">
+        <text x="46" y="196" fill={textColorRed}>HNEWS</text>
+        <text x="156" y="196" fill={textColorBlue}>ALAGOAS</text>
+      </g>
+    </svg>
+  </div>
+) : (
+  <div 
+    class={`inline-flex items-center gap-3 select-none bg-transparent ${className}`} 
+    style={{ height: typeof height === 'number' ? `${height}px` : height }}
+  >
+    <svg
+      viewBox="0 0 208 154"
+      class="h-full w-auto max-h-full shrink-0"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="HN"
+      style="background: transparent;"
+    >
+      <defs>
+        <linearGradient id="h-f-h" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#C72A2E"/>
+          <stop offset="100%" stop-color="#AA1E22"/>
+        </linearGradient>
+        <linearGradient id="h-s-h" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#7F1518"/>
+          <stop offset="100%" stop-color="#671012"/>
+        </linearGradient>
+        <linearGradient id="n-s-h" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#142C44"/>
+          <stop offset="100%" stop-color="#0E2033"/>
+        </linearGradient>
+        <linearGradient id="n-f-h" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#2D5C8F"/>
+          <stop offset="100%" stop-color="#1E3E63"/>
+        </linearGradient>
+      </defs>
+
+      <!-- H -->
+      <path d="M 0 0 L 34 0 L 34 51 L 70 51 L 70 83 L 34 83 L 34 123 L 0 107 Z" fill="url(#h-f-h)"/>
+      <path d="M 70 0 L 104 0 L 104 139 L 70 123 L 70 83 L 70 51 Z" fill="url(#h-s-h)"/>
+
+      <!-- N -->
+      <path d="M 104 0 L 138 0 L 138 123 L 104 139 Z" fill="url(#n-s-h)"/>
+      <path d="M 138 0 L 174 83 L 174 0 L 208 0 L 208 107 L 174 123 L 138 40 Z" fill="url(#n-f-h)"/>
+    </svg>
+
+    <div class="flex flex-col leading-none">
+      <div class="flex items-baseline tracking-tight font-black text-xl sm:text-2xl uppercase">
+        <span class="text-[#BA2327]">HNEWS</span>
+        <span class="ml-1.5 text-[#234A75]">ALAGOAS</span>
+      </div>
+      <span class="text-[9px] font-bold uppercase tracking-widest mt-0.5 text-slate-500">
+        Jornalismo em Tempo Real
+      </span>
+    </div>
+  </div>
+)}
